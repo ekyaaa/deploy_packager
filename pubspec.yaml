@@ -1,0 +1,40 @@
+name: project_changes_generator
+description: "Deploy Packager - Extract changed files from Git commits into a deploy-ready folder."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  file_picker: ^8.1.7
+  google_fonts: ^6.2.1
+  intl: ^0.20.2
+  shared_preferences: ^2.3.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  linux:
+    generate: true
+    image_path: "assets/icon-fix.png"
+  windows:
+    generate: true
+    image_path: "assets/icon-fix.png"
+    icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icon-fix.png"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon-fix.png
+
