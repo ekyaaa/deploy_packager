@@ -307,8 +307,14 @@ class StepExport extends ConsumerWidget {
   }
 
   Future<void> _pickDest(WidgetRef ref) async {
+    // Start at the last used export path
+    final currentDest = ref.read(exportProvider).destinationPath;
+    final savedExport = ref.read(settingsServiceProvider).exportPath;
+    final initialDir = currentDest ?? savedExport;
+
     final result = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Select export destination',
+      initialDirectory: initialDir,
     );
     if (result != null) {
       ref.read(exportProvider.notifier).setDestinationPath(result);

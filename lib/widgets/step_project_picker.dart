@@ -457,8 +457,14 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
       _error = null;
     });
 
+    // Start at the last used project path
+    final currentPath = ref.read(projectPathProvider);
+    final savedPath = ref.read(settingsServiceProvider).projectPath;
+    final initialDir = currentPath ?? savedPath;
+
     final result = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Select a Git project folder',
+      initialDirectory: initialDir,
     );
 
     if (result == null) return;
