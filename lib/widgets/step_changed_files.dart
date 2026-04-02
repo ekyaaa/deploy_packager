@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_providers.dart';
 import '../models/changed_file.dart';
+import 'diff_viewer_dialog.dart';
 
 class StepChangedFiles extends ConsumerStatefulWidget {
   const StepChangedFiles({super.key});
@@ -215,7 +216,37 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 4),
       itemCount: files.length,
-      itemBuilder: (ctx, i) => _FileTile(file: files[i], index: i),
+      itemBuilder: (ctx, i) => _FileTile(
+        file: files[i], 
+        index: i,
+        onTap: () => _openDiff(files[i].relativePath),
+      ),
+    );
+  }
+
+  void _openDiff(String filePath) {
+    final projectPath = ref.read(projectPathProvider);
+    final selectedHashes = ref.read(selectedCommitHashesProvider);
+    final allCommits = ref.read(commitsProvider).valueOrNull ?? [];
+
+    if (projectPath == null || selectedHashes.isEmpty || allCommits.isEmpty) return;
+
+    final selectedCommits = allCommits.where((c) => selectedHashes.contains(c.hash)).toList();
+    if (selectedCommits.isEmpty) return;
+    
+    selectedCommits.sort((a, b) => a.date.compareTo(b.date));
+
+    final oldestHash = selectedCommits.first.hash;
+    final newestHash = selectedCommits.last.hash;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => DiffViewerDialog(
+        projectPath: projectPath,
+        filePath: filePath,
+        oldestHash: oldestHash,
+        newestHash: newestHash,
+      ),
     );
   }
 
@@ -253,7 +284,8 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
 class _FileTile extends StatelessWidget {
   final ChangedFile file;
   final int index;
-  const _FileTile({required this.file, required this.index});
+  final VoidCallback onTap;
+  const _FileTile({required this.file, required this.index, required this.onTap});
 
   IconData _icon(String name) {
     final ext = name.split('.').last.toLowerCase();
@@ -275,59 +307,67 @@ class _FileTile extends StatelessWidget {
     final c = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(10),
-          color: c.surfaceContainerHigh.withValues(alpha: 0.35),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
-        ),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 32,
-              child: Text(
-                '${index + 1}',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
-                  color: c.onSurface.withValues(alpha: 0.3),
-                ),
-                textAlign: TextAlign.center,
-              ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: c.surfaceContainerHigh.withValues(alpha: 0.35),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
             ),
-            const SizedBox(width: 8),
-            Icon(
-              _icon(file.fileName),
-              size: 18,
-              color: c.primary.withValues(alpha: 0.7),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: RichText(
-                overflow: TextOverflow.ellipsis,
-                text: TextSpan(
-                  children: [
-                    if (file.directory.isNotEmpty)
-                      TextSpan(
-                        text: '${file.directory}/',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12.5,
-                          color: c.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    TextSpan(
-                      text: file.fileName,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                        color: c.onSurface.withValues(alpha: 0.85),
-                      ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    '${index + 1}',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      color: c.onSurface.withValues(alpha: 0.3),
                     ),
-                  ],
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Icon(
+                  _icon(file.fileName),
+                  size: 18,
+                  color: c.primary.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: RichText(
+                    overflow: TextOverflow.ellipsis,
+                    text: TextSpan(
+                      children: [
+                        if (file.directory.isNotEmpty)
+                          TextSpan(
+                            text: '${file.directory}/',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12.5,
+                              color: c.onSurface.withValues(alpha: 0.4),
+                            ),
+                          ),
+                        TextSpan(
+                          text: file.fileName,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: c.onSurface.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Icon(Icons.open_in_new_rounded, size: 16, color: c.onSurface.withValues(alpha: 0.3)),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

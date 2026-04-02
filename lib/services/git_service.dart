@@ -1,6 +1,7 @@
 import 'dart:io';
 import '../models/git_commit.dart';
 import '../models/changed_file.dart';
+import '../models/diff_result.dart';
 
 class GitService {
   /// Check if the given path is a valid Git repository.
@@ -16,7 +17,7 @@ class GitService {
   }) async {
     final result = await Process.run('git', [
       'log',
-      '--format=%H||%h||%s||%an||%aI',
+      '--format=%H%x1F%h%x1F%s%x1F%an%x1F%aI',
       '-n',
       '$limit',
     ], workingDirectory: projectPath);
@@ -72,5 +73,68 @@ class GitService {
 
     return allFiles.map((path) => ChangedFile(relativePath: path)).toList()
       ..sort((a, b) => a.relativePath.compareTo(b.relativePath));
+  }
+
+  /// Get the raw unified diff for a file between its base and new state.
+  Future<DiffResult> getFileDiff(
+    String projectPath,
+    String filePath,
+    String oldestCommit,
+    String newestCommit,
+  ) async {
+    // get parent of oldest commit
+    String? baseCommit;
+    final parentResult = await Process.run('git', [
+      'log', '-1', '--format=%P', oldestCommit
+    ], workingDirectory: projectPath);
+
+    if (parentResult.exitCode == 0) {
+      final parents = (parentResult.stdout as String).trim().split(' ');
+      if (parents.isNotEmpty && parents.first.isNotEmpty) {
+        baseCommit = parents.first;
+      }
+    }
+
+    String? baseTime;
+    if (baseCommit != null) {
+      final timeRes = await Process.run('git', [
+        'log', '-1', '--format=%aI', baseCommit
+      ], workingDirectory: projectPath);
+      if (timeRes.exitCode == 0) {
+        baseTime = (timeRes.stdout as String).trim();
+      }
+    }
+
+    String? newTime;
+    final newTimeRes = await Process.run('git', [
+      'log', '-1', '--format=%aI', newestCommit
+    ], workingDirectory: projectPath);
+    if (newTimeRes.exitCode == 0) {
+      newTime = (newTimeRes.stdout as String).trim();
+    }
+
+    final diffArgs = [
+      'diff',
+      if (baseCommit != null)
+        '$baseCommit..$newestCommit'
+      else
+        '4b825dc642cb6eb9a060e54bf8d69288fbee4904..$newestCommit',
+      '--',
+      filePath
+    ];
+
+    final diffRes = await Process.run('git', diffArgs, workingDirectory: projectPath);
+    final diffText = diffRes.stdout as String;
+
+    bool isNewFile = baseCommit == null || diffText.contains('new file mode ');
+    bool isBinary = diffText.contains('Binary files ') && diffText.contains(' differ');
+
+    return DiffResult(
+      diffText: diffText,
+      baseCommitTime: baseTime,
+      newCommitTime: newTime,
+      isNewFile: isNewFile,
+      isBinary: isBinary,
+    );
   }
 }

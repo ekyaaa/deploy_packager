@@ -14,9 +14,9 @@ class GitCommit {
   });
 
   /// Parses a line from `git log` with format:
-  /// `%H||%h||%s||%an||%aI`
+  /// `%H%x1F%h%x1F%s%x1F%an%x1F%aI`
   factory GitCommit.fromLogLine(String line) {
-    final parts = line.split('||');
+    final parts = line.split('\x1F');
     if (parts.length < 5) {
       throw FormatException('Invalid git log line: $line');
     }

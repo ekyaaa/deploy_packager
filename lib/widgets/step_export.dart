@@ -311,10 +311,15 @@ class StepExport extends ConsumerWidget {
     final currentDest = ref.read(exportProvider).destinationPath;
     final savedExport = ref.read(settingsServiceProvider).exportPath;
     final initialDir = currentDest ?? savedExport;
+    
+    String? validInitialDir;
+    if (initialDir != null && Directory(initialDir).existsSync()) {
+      validInitialDir = initialDir;
+    }
 
     final result = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Select export destination',
-      initialDirectory: initialDir,
+      initialDirectory: validInitialDir,
     );
     if (result != null) {
       ref.read(exportProvider.notifier).setDestinationPath(result);

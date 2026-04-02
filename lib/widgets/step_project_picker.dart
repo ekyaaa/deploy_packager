@@ -461,10 +461,15 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
     final currentPath = ref.read(projectPathProvider);
     final savedPath = ref.read(settingsServiceProvider).projectPath;
     final initialDir = currentPath ?? savedPath;
+    
+    String? validInitialDir;
+    if (initialDir != null && Directory(initialDir).existsSync()) {
+      validInitialDir = initialDir;
+    }
 
     final result = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Select a Git project folder',
-      initialDirectory: initialDir,
+      initialDirectory: validInitialDir,
     );
 
     if (result == null) return;
