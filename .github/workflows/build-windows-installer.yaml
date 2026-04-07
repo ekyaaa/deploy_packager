@@ -10,7 +10,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout repo
+      # 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -33,44 +33,53 @@ jobs:
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
-      # 5. Install deps
+      # 5. Dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. Build Windows app
+      # 6. Build Windows
       - name: Build Windows
         run: flutter build windows
 
-      # 7. Install Inno Setup
+      # 7. Rename exe (biar konsisten)
+      - name: Rename EXE
+        run: |
+          Rename-Item `
+            -Path "build\windows\x64\runner\Release\project_changes_generator.exe" `
+            -NewName "deploy_packager.exe"
+
+      # 8. Install Inno Setup
       - name: Install Inno Setup
         run: choco install innosetup -y
 
-      # 8. Create installer script (.iss)
+      # 9. Create installer.iss (FIXED)
       - name: Create Installer Script
         run: |
-          echo [Setup] > installer.iss
-          echo AppName=MyFlutterApp >> installer.iss
-          echo AppVersion=1.0 >> installer.iss
-          echo DefaultDirName={pf}\MyFlutterApp >> installer.iss
-          echo DefaultGroupName=MyFlutterApp >> installer.iss
-          echo OutputDir=output >> installer.iss
-          echo OutputBaseFilename=setup >> installer.iss
-          echo Compression=lzma >> installer.iss
-          echo SolidCompression=yes >> installer.iss
+          @"
+[Setup]
+AppName=deploy_packager
+AppVersion=1.0
+DefaultDirName={pf}\deploy_packager
+DefaultGroupName=deploy_packager
+OutputDir=output
+OutputBaseFilename=deploy_packager_setup
+Compression=lzma
+SolidCompression=yes
 
-          echo [Files] >> installer.iss
-          echo Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs >> installer.iss
+[Files]
+Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
-          echo [Icons] >> installer.iss
-          echo Name: "{group}\MyFlutterApp"; Filename: "{app}\project_changes_generator.exe" >> installer.iss
+[Icons]
+Name: "{group}\deploy_packager"; Filename: "{app}\deploy_packager.exe"
+"@ | Out-File -Encoding ASCII installer.iss
 
-      # 9. Build installer
+      # 10. Build installer
       - name: Build Installer
         run: iscc installer.iss
 
-      # 10. Upload installer
+      # 11. Upload
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
-          path: output/setup.exe
+          name: deploy-packager-installer
+          path: output/deploy_packager_setup.exe
