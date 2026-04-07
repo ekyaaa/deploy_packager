@@ -15,12 +15,17 @@ class GitService {
     String projectPath, {
     int limit = 50,
   }) async {
-    final result = await Process.run('git', [
-      'log',
-      '--format=%H%x1F%h%x1F%s%x1F%an%x1F%aI',
-      '-n',
-      '$limit',
-    ], workingDirectory: projectPath);
+    final result = await Process.run(
+      'git',
+      [
+        'log',
+        '--format=%H%x1F%h%x1F%s%x1F%an%x1F%aI',
+        '-n',
+        '$limit',
+      ],
+      workingDirectory: projectPath,
+      runInShell: Platform.isWindows,
+    );
 
     if (result.exitCode != 0) {
       throw Exception('Failed to get git commits: ${result.stderr}');
@@ -45,14 +50,19 @@ class GitService {
     final allFiles = <String>{};
 
     for (final hash in commitHashes) {
-      final result = await Process.run('git', [
-        'diff-tree',
-        '--no-commit-id',
-        '--name-only',
-        '--diff-filter=d',
-        '-r',
-        hash,
-      ], workingDirectory: projectPath);
+      final result = await Process.run(
+        'git',
+        [
+          'diff-tree',
+          '--no-commit-id',
+          '--name-only',
+          '--diff-filter=d',
+          '-r',
+          hash,
+        ],
+        workingDirectory: projectPath,
+        runInShell: Platform.isWindows,
+      );
 
       if (result.exitCode != 0) {
         throw Exception(
@@ -86,7 +96,7 @@ class GitService {
     String? baseCommit;
     final parentResult = await Process.run('git', [
       'log', '-1', '--format=%P', oldestCommit
-    ], workingDirectory: projectPath);
+    ], workingDirectory: projectPath, runInShell: Platform.isWindows);
 
     if (parentResult.exitCode == 0) {
       final parents = (parentResult.stdout as String).trim().split(' ');
@@ -99,7 +109,7 @@ class GitService {
     if (baseCommit != null) {
       final timeRes = await Process.run('git', [
         'log', '-1', '--format=%aI', baseCommit
-      ], workingDirectory: projectPath);
+      ], workingDirectory: projectPath, runInShell: Platform.isWindows);
       if (timeRes.exitCode == 0) {
         baseTime = (timeRes.stdout as String).trim();
       }
@@ -108,7 +118,7 @@ class GitService {
     String? newTime;
     final newTimeRes = await Process.run('git', [
       'log', '-1', '--format=%aI', newestCommit
-    ], workingDirectory: projectPath);
+    ], workingDirectory: projectPath, runInShell: Platform.isWindows);
     if (newTimeRes.exitCode == 0) {
       newTime = (newTimeRes.stdout as String).trim();
     }
@@ -123,7 +133,7 @@ class GitService {
       filePath
     ];
 
-    final diffRes = await Process.run('git', diffArgs, workingDirectory: projectPath);
+    final diffRes = await Process.run('git', diffArgs, workingDirectory: projectPath, runInShell: Platform.isWindows);
     final diffText = diffRes.stdout as String;
 
     bool isNewFile = baseCommit == null || diffText.contains('new file mode ');
