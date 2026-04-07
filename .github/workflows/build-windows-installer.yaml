@@ -1,0 +1,76 @@
+name: Build Flutter Windows Installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Cache Flutter
+      - name: Cache Flutter
+        uses: actions/cache@v4
+        with:
+          path: flutter
+          key: flutter-${{ runner.os }}
+
+      # 3. Install Flutter
+      - name: Install Flutter
+        run: |
+          if (!(Test-Path -Path "flutter")) {
+            git clone https://github.com/flutter/flutter.git -b stable
+          }
+          echo "$PWD/flutter/bin" >> $env:GITHUB_PATH
+
+      # 4. Enable Windows
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      # 5. Install deps
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 6. Build Windows app
+      - name: Build Windows
+        run: flutter build windows
+
+      # 7. Install Inno Setup
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      # 8. Create installer script (.iss)
+      - name: Create Installer Script
+        run: |
+          echo [Setup] > installer.iss
+          echo AppName=MyFlutterApp >> installer.iss
+          echo AppVersion=1.0 >> installer.iss
+          echo DefaultDirName={pf}\MyFlutterApp >> installer.iss
+          echo DefaultGroupName=MyFlutterApp >> installer.iss
+          echo OutputDir=output >> installer.iss
+          echo OutputBaseFilename=setup >> installer.iss
+          echo Compression=lzma >> installer.iss
+          echo SolidCompression=yes >> installer.iss
+
+          echo [Files] >> installer.iss
+          echo Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs >> installer.iss
+
+          echo [Icons] >> installer.iss
+          echo Name: "{group}\MyFlutterApp"; Filename: "{app}\project_changes_generator.exe" >> installer.iss
+
+      # 9. Build installer
+      - name: Build Installer
+        run: iscc installer.iss
+
+      # 10. Upload installer
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: output/setup.exe
