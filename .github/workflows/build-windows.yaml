@@ -1,6 +1,7 @@
 name: Build Flutter Windows App
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
 
@@ -9,24 +10,43 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # 1. Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      # 2. Cache Flutter SDK (biar tidak download ulang)
+      - name: Cache Flutter SDK
+        uses: actions/cache@v4
         with:
-          flutter-version: 'stable'
+          path: flutter
+          key: flutter-${{ runner.os }}
 
+      # 3. Install Flutter (manual, stabil)
+      - name: Install Flutter
+        run: |
+          if (!(Test-Path -Path "flutter")) {
+            git clone https://github.com/flutter/flutter.git -b stable
+          }
+          echo "$PWD/flutter/bin" >> $env:GITHUB_PATH
+
+      # 4. Cek Flutter
+      - name: Flutter Doctor
+        run: flutter doctor
+
+      # 5. Enable Windows Desktop
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
+      # 6. Ambil dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Windows app
+      # 7. Build Windows app
+      - name: Build Windows
         run: flutter build windows
 
-      - name: Upload artifact
+      # 8. Upload hasil build (.exe)
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
