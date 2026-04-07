@@ -23,8 +23,9 @@ jobs:
 
       # 3. Install Flutter
       - name: Install Flutter
+        shell: pwsh
         run: |
-          if (!(Test-Path -Path "flutter")) {
+          if (!(Test-Path "flutter")) {
             git clone https://github.com/flutter/flutter.git -b stable
           }
           echo "$PWD/flutter/bin" >> $env:GITHUB_PATH
@@ -41,8 +42,9 @@ jobs:
       - name: Build Windows
         run: flutter build windows
 
-      # 7. Rename exe (biar konsisten)
+      # 7. Rename EXE
       - name: Rename EXE
+        shell: pwsh
         run: |
           Rename-Item `
             -Path "build\windows\x64\runner\Release\project_changes_generator.exe" `
@@ -52,10 +54,11 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y
 
-      # 9. Create installer.iss (FIXED)
+      # 9. Create installer.iss (FIXED YAML SAFE)
       - name: Create Installer Script
+        shell: pwsh
         run: |
-          @"
+          $content = @'
 [Setup]
 AppName=deploy_packager
 AppVersion=1.0
@@ -71,7 +74,9 @@ Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignorever
 
 [Icons]
 Name: "{group}\deploy_packager"; Filename: "{app}\deploy_packager.exe"
-"@ | Out-File -Encoding ASCII installer.iss
+'@
+
+          Set-Content -Path installer.iss -Value $content
 
       # 10. Build installer
       - name: Build Installer
