@@ -3,25 +3,22 @@ name: Build Flutter Windows Installer
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-windows:
     runs-on: windows-latest
 
     steps:
-      # 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Cache Flutter
       - name: Cache Flutter
         uses: actions/cache@v4
         with:
           path: flutter
           key: flutter-${{ runner.os }}
 
-      # 3. Install Flutter
       - name: Install Flutter
         shell: pwsh
         run: |
@@ -30,59 +27,45 @@ jobs:
           }
           echo "$PWD/flutter/bin" >> $env:GITHUB_PATH
 
-      # 4. Enable Windows
       - name: Enable Windows Desktop
         run: flutter config --enable-windows-desktop
 
-      # 5. Dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. Build Windows
       - name: Build Windows
         run: flutter build windows
 
-      # 7. Rename EXE
       - name: Rename EXE
         shell: pwsh
         run: |
-          Rename-Item `
-            -Path "build\windows\x64\runner\Release\project_changes_generator.exe" `
-            -NewName "deploy_packager.exe"
+          Rename-Item "build\windows\x64\runner\Release\project_changes_generator.exe" "deploy_packager.exe"
 
-      # 8. Install Inno Setup
       - name: Install Inno Setup
         run: choco install innosetup -y
 
-      # 9. Create installer.iss (FIXED YAML SAFE)
-      - name: Create Installer Script
+      - name: Create installer.iss
         shell: pwsh
         run: |
-          $content = @'
-[Setup]
-AppName=deploy_packager
-AppVersion=1.0
-DefaultDirName={pf}\deploy_packager
-DefaultGroupName=deploy_packager
-OutputDir=output
-OutputBaseFilename=deploy_packager_setup
-Compression=lzma
-SolidCompression=yes
+          Set-Content installer.iss "[Setup]"
+          Add-Content installer.iss "AppName=deploy_packager"
+          Add-Content installer.iss "AppVersion=1.0"
+          Add-Content installer.iss "DefaultDirName={pf}\deploy_packager"
+          Add-Content installer.iss "DefaultGroupName=deploy_packager"
+          Add-Content installer.iss "OutputDir=output"
+          Add-Content installer.iss "OutputBaseFilename=deploy_packager_setup"
+          Add-Content installer.iss "Compression=lzma"
+          Add-Content installer.iss "SolidCompression=yes"
+          Add-Content installer.iss ""
+          Add-Content installer.iss "[Files]"
+          Add-Content installer.iss "Source: ""build\windows\x64\runner\Release\*""; DestDir: ""{app}""; Flags: ignoreversion recursesubdirs"
+          Add-Content installer.iss ""
+          Add-Content installer.iss "[Icons]"
+          Add-Content installer.iss "Name: ""{group}\deploy_packager""; Filename: ""{app}\deploy_packager.exe"""
 
-[Files]
-Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
-
-[Icons]
-Name: "{group}\deploy_packager"; Filename: "{app}\deploy_packager.exe"
-'@
-
-          Set-Content -Path installer.iss -Value $content
-
-      # 10. Build installer
       - name: Build Installer
         run: iscc installer.iss
 
-      # 11. Upload
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
