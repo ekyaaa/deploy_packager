@@ -50,7 +50,7 @@ class StepCommitList extends ConsumerWidget {
     WidgetRef ref,
     ColorScheme colors,
     Set<String> selectedHashes,
-    AsyncValue commitsAsync,
+    AsyncValue<List<GitCommit>> commitsAsync,
   ) {
     final commits = commitsAsync.valueOrNull ?? [];
 
