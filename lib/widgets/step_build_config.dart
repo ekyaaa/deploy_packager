@@ -12,27 +12,30 @@ class StepBuildConfig extends ConsumerStatefulWidget {
 }
 
 class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
-  late TextEditingController _buildCommandCtrl;
+  late TextEditingController _frontendDirCtrl;
+  late TextEditingController _frontendCmdCtrl;
   late TextEditingController _distFolderCtrl;
-  late TextEditingController _pythonPathCtrl;
-  late TextEditingController _managePyDirCtrl;
+  late TextEditingController _backendDirCtrl;
+  late TextEditingController _collectstaticCmdCtrl;
 
   @override
   void initState() {
     super.initState();
     final cfg = ref.read(buildConfigProvider);
-    _buildCommandCtrl = TextEditingController(text: cfg.buildCommand);
+    _frontendDirCtrl = TextEditingController(text: cfg.frontendDir);
+    _frontendCmdCtrl = TextEditingController(text: cfg.frontendCommand);
     _distFolderCtrl = TextEditingController(text: cfg.distFolder);
-    _pythonPathCtrl = TextEditingController(text: cfg.pythonPath);
-    _managePyDirCtrl = TextEditingController(text: cfg.managePyDir);
+    _backendDirCtrl = TextEditingController(text: cfg.backendDir);
+    _collectstaticCmdCtrl = TextEditingController(text: cfg.collectstaticCommand);
   }
 
   @override
   void dispose() {
-    _buildCommandCtrl.dispose();
+    _frontendDirCtrl.dispose();
+    _frontendCmdCtrl.dispose();
     _distFolderCtrl.dispose();
-    _pythonPathCtrl.dispose();
-    _managePyDirCtrl.dispose();
+    _backendDirCtrl.dispose();
+    _collectstaticCmdCtrl.dispose();
     super.dispose();
   }
 
@@ -172,88 +175,42 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
     return _SectionCard(
       icon: Icons.web_rounded,
       title: 'Frontend Build',
+      subtitle: 'e.g. cd frontend && pnpm run build',
       colors: colors,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Package Manager',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.onSurface.withValues(alpha: 0.08)),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: config.packageManager,
-                isExpanded: true,
-                dropdownColor: colors.surfaceContainerHigh,
-                items: const [
-                  DropdownMenuItem(value: 'npm', child: Text('npm')),
-                  DropdownMenuItem(value: 'pnpm', child: Text('pnpm')),
-                ],
-                onChanged: (v) {
-                  if (v != null) {
-                    ref.read(buildConfigProvider.notifier).setPackageManager(v);
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Build Command',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
+          _label(colors, 'Working Directory (relative)'),
           const SizedBox(height: 8),
           TextField(
-            controller: _buildCommandCtrl,
+            controller: _frontendDirCtrl,
             decoration: _inputDecoration(colors).copyWith(
-              hintText: 'run build',
+              hintText: '(project root)',
             ),
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              color: colors.onSurface,
-            ),
-            onChanged: (v) {
-              ref.read(buildConfigProvider.notifier).setBuildCommand(v);
-            },
+            style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
+            onChanged: (v) => ref.read(buildConfigProvider.notifier).setFrontendDir(v),
           ),
           const SizedBox(height: 16),
-          Text(
-            'Dist Folder',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: colors.onSurface.withValues(alpha: 0.6),
+          _label(colors, 'Build Command'),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _frontendCmdCtrl,
+            decoration: _inputDecoration(colors).copyWith(
+              hintText: 'npm run build',
             ),
+            style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
+            onChanged: (v) => ref.read(buildConfigProvider.notifier).setFrontendCommand(v),
           ),
+          const SizedBox(height: 16),
+          _label(colors, 'Dist Folder Name'),
           const SizedBox(height: 8),
           TextField(
             controller: _distFolderCtrl,
             decoration: _inputDecoration(colors).copyWith(
               hintText: 'dist',
             ),
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 13,
-              color: colors.onSurface,
-            ),
-            onChanged: (v) {
-              ref.read(buildConfigProvider.notifier).setDistFolder(v);
-            },
+            style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
+            onChanged: (v) => ref.read(buildConfigProvider.notifier).setDistFolder(v),
           ),
           const SizedBox(height: 8),
           Text(
@@ -272,6 +229,7 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
     return _SectionCard(
       icon: Icons.code_rounded,
       title: 'Django Collectstatic',
+      subtitle: 'e.g. cd backend && source ../env/bin/activate && python manage.py collectstatic --noinput',
       colors: colors,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,50 +257,26 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
           ),
           if (config.runCollectstatic) ...[
             const SizedBox(height: 16),
-            Text(
-              'Python Path',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
+            _label(colors, 'Working Directory (relative)'),
             const SizedBox(height: 8),
             TextField(
-              controller: _pythonPathCtrl,
-              decoration: _inputDecoration(colors).copyWith(
-                hintText: 'python3',
-              ),
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 13,
-                color: colors.onSurface,
-              ),
-              onChanged: (v) {
-                ref.read(buildConfigProvider.notifier).setPythonPath(v);
-              },
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'manage.py Directory',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: colors.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _managePyDirCtrl,
+              controller: _backendDirCtrl,
               decoration: _inputDecoration(colors).copyWith(
                 hintText: '(project root)',
               ),
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 13,
-                color: colors.onSurface,
+              style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
+              onChanged: (v) => ref.read(buildConfigProvider.notifier).setBackendDir(v),
+            ),
+            const SizedBox(height: 16),
+            _label(colors, 'Collectstatic Command'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _collectstaticCmdCtrl,
+              decoration: _inputDecoration(colors).copyWith(
+                hintText: 'python3 manage.py collectstatic --noinput',
               ),
-              onChanged: (v) {
-                ref.read(buildConfigProvider.notifier).setManagePyDir(v);
-              },
+              style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
+              onChanged: (v) => ref.read(buildConfigProvider.notifier).setCollectstaticCommand(v),
             ),
             const SizedBox(height: 8),
             Text(
@@ -369,16 +303,12 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 18,
-            color: colors.primary.withValues(alpha: 0.7),
-          ),
+          Icon(Icons.info_outline_rounded, size: 18, color: colors.primary.withValues(alpha: 0.7)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Configuration is saved automatically per project. '
-              'Builds run inside the project directory before file export.',
+              'Commands run via bash. Use && to chain steps, e.g. '
+              'source ../env/bin/activate && python manage.py collectstatic --noinput',
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: colors.onSurface.withValues(alpha: 0.6),
@@ -403,21 +333,28 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
       child: Row(
         children: [
           OutlinedButton.icon(
-            onPressed: () {
-              ref.read(currentStepProvider.notifier).state = 2;
-            },
+            onPressed: () => ref.read(currentStepProvider.notifier).state = 2,
             icon: const Icon(Icons.arrow_back_rounded, size: 18),
             label: const Text('Back'),
           ),
           const Spacer(),
           FilledButton.icon(
-            onPressed: () {
-              ref.read(currentStepProvider.notifier).state = 4;
-            },
+            onPressed: () => ref.read(currentStepProvider.notifier).state = 4,
             icon: const Icon(Icons.arrow_forward_rounded, size: 18),
             label: const Text('Proceed to Export'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _label(ColorScheme colors, String text) {
+    return Text(
+      text,
+      style: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: colors.onSurface.withValues(alpha: 0.6),
       ),
     );
   }
@@ -446,12 +383,14 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
 class _SectionCard extends StatelessWidget {
   final IconData icon;
   final String title;
+  final String subtitle;
   final ColorScheme colors;
   final Widget child;
 
   const _SectionCard({
     required this.icon,
     required this.title,
+    required this.subtitle,
     required this.colors,
     required this.child,
   });
@@ -477,6 +416,14 @@ class _SectionCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: colors.onSurface.withValues(alpha: 0.4),
+              ),
             ),
             const SizedBox(height: 16),
             child,

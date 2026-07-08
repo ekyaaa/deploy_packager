@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/git_commit.dart';
 import '../models/changed_file.dart';
@@ -81,13 +82,13 @@ class BuildConfigNotifier extends StateNotifier<BuildConfig> {
   }
 
   void toggleEnabled() => update(state.copyWith(enabled: !state.enabled));
-
-  void setPackageManager(String v) => update(state.copyWith(packageManager: v));
-  void setBuildCommand(String v) => update(state.copyWith(buildCommand: v));
-  void setDistFolder(String v) => update(state.copyWith(distFolder: v));
   void toggleCollectstatic() => update(state.copyWith(runCollectstatic: !state.runCollectstatic));
-  void setPythonPath(String v) => update(state.copyWith(pythonPath: v));
-  void setManagePyDir(String v) => update(state.copyWith(managePyDir: v));
+
+  void setFrontendDir(String v) => update(state.copyWith(frontendDir: v));
+  void setFrontendCommand(String v) => update(state.copyWith(frontendCommand: v));
+  void setDistFolder(String v) => update(state.copyWith(distFolder: v));
+  void setBackendDir(String v) => update(state.copyWith(backendDir: v));
+  void setCollectstaticCommand(String v) => update(state.copyWith(collectstaticCommand: v));
 }
 
 // ─── Step 5: Export ─────────────────────────────────────────
@@ -173,38 +174,64 @@ class ExportNotifier extends StateNotifier<ExportState> {
 
       // ── Build step ──────────────────────────────────────────
       if (buildConfig.enabled) {
-        // Frontend build
+        outputLines.add('> cd ${buildConfig.frontendDir.isNotEmpty ? buildConfig.frontendDir : '.'}');
+        outputLines.add('> ${buildConfig.frontendCommand}');
+
         final buildResult = await buildService.runFrontendBuild(
           projectPath, buildConfig,
         );
-        outputLines.add('[npm/pnpm build] ${buildResult.success ? "OK" : "FAILED"}');
+        if (buildResult.success) {
+          outputLines.add('✓ Frontend build OK');
+        } else {
+          outputLines.add('✗ Frontend build FAILED');
+        }
         if (buildResult.output.isNotEmpty) {
           final lines = buildResult.output.split('\n');
           outputLines.addAll(lines.take(10));
           if (lines.length > 10) outputLines.add('... (${lines.length - 10} more lines)');
         }
+        if (buildResult.error != null) {
+          outputLines.add('  → ${buildResult.error}');
+        }
 
         if (buildResult.success) {
           final distSource = '$projectPath/${buildConfig.distFolder}';
+          final resolvedDist = buildConfig.frontendDir.isNotEmpty
+              ? '$projectPath/${buildConfig.frontendDir}/${buildConfig.distFolder}'
+              : distSource;
+          final actualDist = Directory(resolvedDist).existsSync() ? resolvedDist : distSource;
           await buildService.copyFolderContents(
-            sourcePath: distSource,
+            sourcePath: actualDist,
             destPath: '$dest/static/${buildConfig.distFolder}',
           );
-          outputLines.add('  → Copied ${buildConfig.distFolder}/ to static/${buildConfig.distFolder}/');
-        } else {
-          outputLines.add('  → Error: ${buildResult.error}');
+          outputLines.add('  → Copied ${buildConfig.distFolder}/ → static/${buildConfig.distFolder}/');
         }
 
-        // Collectstatic
         if (buildConfig.runCollectstatic) {
+          outputLines.add('');
+          outputLines.add('> cd ${buildConfig.backendDir.isNotEmpty ? buildConfig.backendDir : '.'}');
+          outputLines.add('> ${buildConfig.collectstaticCommand}');
+
           final csResult = await buildService.runCollectstatic(
             projectPath, buildConfig,
           );
-          outputLines.add('[collectstatic] ${csResult.success ? "OK" : "FAILED"}');
+          if (csResult.success) {
+            outputLines.add('✓ Collectstatic OK');
+          } else {
+            outputLines.add('✗ Collectstatic FAILED');
+          }
+          if (csResult.output.isNotEmpty) {
+            final lines = csResult.output.split('\n');
+            outputLines.addAll(lines.take(10));
+            if (lines.length > 10) outputLines.add('... (${lines.length - 10} more lines)');
+          }
+          if (csResult.error != null) {
+            outputLines.add('  → ${csResult.error}');
+          }
 
           if (csResult.success) {
-            final csSource = buildConfig.managePyDir.isNotEmpty
-                ? '$projectPath/${buildConfig.managePyDir}/collected'
+            final csSource = buildConfig.backendDir.isNotEmpty
+                ? '$projectPath/${buildConfig.backendDir}/collected'
                 : '$projectPath/collected';
             await buildService.copyFolderContents(
               sourcePath: csSource,

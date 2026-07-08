@@ -14,15 +14,15 @@ class BuildStepResult {
 }
 
 class BuildService {
-  Future<BuildStepResult> runFrontendBuild(
-    String projectPath,
-    BuildConfig config,
-  ) async {
+  Future<BuildStepResult> runShellCommand({
+    required String workingDir,
+    required String command,
+  }) async {
     try {
       final result = await Process.run(
-        config.packageManager,
-        config.buildCommand.split(' '),
-        workingDirectory: projectPath,
+        Platform.isWindows ? 'cmd' : 'bash',
+        Platform.isWindows ? ['/c', command] : ['-c', command],
+        workingDirectory: workingDir,
         runInShell: Platform.isWindows,
       );
 
@@ -33,7 +33,7 @@ class BuildService {
         return BuildStepResult(
           success: false,
           output: output,
-          error: stderr.isNotEmpty ? stderr : 'Build exited with code ${result.exitCode}',
+          error: stderr.isNotEmpty ? stderr : 'Command exited with code ${result.exitCode}',
         );
       }
 
@@ -47,41 +47,32 @@ class BuildService {
     }
   }
 
+  Future<BuildStepResult> runFrontendBuild(
+    String projectPath,
+    BuildConfig config,
+  ) async {
+    final workDir = config.frontendDir.isNotEmpty
+        ? '$projectPath/${config.frontendDir}'
+        : projectPath;
+
+    return runShellCommand(
+      workingDir: workDir,
+      command: config.frontendCommand,
+    );
+  }
+
   Future<BuildStepResult> runCollectstatic(
     String projectPath,
     BuildConfig config,
   ) async {
-    try {
-      final workDir = config.managePyDir.isNotEmpty
-          ? '$projectPath/${config.managePyDir}'
-          : projectPath;
+    final workDir = config.backendDir.isNotEmpty
+        ? '$projectPath/${config.backendDir}'
+        : projectPath;
 
-      final result = await Process.run(
-        config.pythonPath,
-        ['manage.py', 'collectstatic', '--noinput'],
-        workingDirectory: workDir,
-        runInShell: Platform.isWindows,
-      );
-
-      final output = (result.stdout as String).trim();
-      final stderr = (result.stderr as String).trim();
-
-      if (result.exitCode != 0) {
-        return BuildStepResult(
-          success: false,
-          output: output,
-          error: stderr.isNotEmpty ? stderr : 'collectstatic exited with code ${result.exitCode}',
-        );
-      }
-
-      return BuildStepResult(success: true, output: output);
-    } catch (e) {
-      return BuildStepResult(
-        success: false,
-        output: '',
-        error: e.toString(),
-      );
-    }
+    return runShellCommand(
+      workingDir: workDir,
+      command: config.collectstaticCommand,
+    );
   }
 
   Future<void> copyFolderContents({

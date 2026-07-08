@@ -2,61 +2,63 @@ import 'dart:convert';
 
 class BuildConfig {
   final bool enabled;
-  final String packageManager;
-  final String buildCommand;
-  final String distFolder;
   final bool runCollectstatic;
-  final String pythonPath;
-  final String managePyDir;
+
+  final String frontendDir;
+  final String frontendCommand;
+  final String distFolder;
+
+  final String backendDir;
+  final String collectstaticCommand;
 
   const BuildConfig({
     this.enabled = false,
-    this.packageManager = 'npm',
-    this.buildCommand = 'run build',
-    this.distFolder = 'dist',
     this.runCollectstatic = false,
-    this.pythonPath = 'python3',
-    this.managePyDir = '',
+    this.frontendDir = '',
+    this.frontendCommand = 'npm run build',
+    this.distFolder = 'dist',
+    this.backendDir = '',
+    this.collectstaticCommand = 'python3 manage.py collectstatic --noinput',
   });
 
   BuildConfig copyWith({
     bool? enabled,
-    String? packageManager,
-    String? buildCommand,
-    String? distFolder,
     bool? runCollectstatic,
-    String? pythonPath,
-    String? managePyDir,
+    String? frontendDir,
+    String? frontendCommand,
+    String? distFolder,
+    String? backendDir,
+    String? collectstaticCommand,
   }) {
     return BuildConfig(
       enabled: enabled ?? this.enabled,
-      packageManager: packageManager ?? this.packageManager,
-      buildCommand: buildCommand ?? this.buildCommand,
-      distFolder: distFolder ?? this.distFolder,
       runCollectstatic: runCollectstatic ?? this.runCollectstatic,
-      pythonPath: pythonPath ?? this.pythonPath,
-      managePyDir: managePyDir ?? this.managePyDir,
+      frontendDir: frontendDir ?? this.frontendDir,
+      frontendCommand: frontendCommand ?? this.frontendCommand,
+      distFolder: distFolder ?? this.distFolder,
+      backendDir: backendDir ?? this.backendDir,
+      collectstaticCommand: collectstaticCommand ?? this.collectstaticCommand,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
-    'packageManager': packageManager,
-    'buildCommand': buildCommand,
-    'distFolder': distFolder,
     'runCollectstatic': runCollectstatic,
-    'pythonPath': pythonPath,
-    'managePyDir': managePyDir,
+    'frontendDir': frontendDir,
+    'frontendCommand': frontendCommand,
+    'distFolder': distFolder,
+    'backendDir': backendDir,
+    'collectstaticCommand': collectstaticCommand,
   };
 
   factory BuildConfig.fromJson(Map<String, dynamic> json) => BuildConfig(
     enabled: json['enabled'] as bool? ?? false,
-    packageManager: json['packageManager'] as String? ?? 'npm',
-    buildCommand: json['buildCommand'] as String? ?? 'run build',
-    distFolder: json['distFolder'] as String? ?? 'dist',
     runCollectstatic: json['runCollectstatic'] as bool? ?? false,
-    pythonPath: json['pythonPath'] as String? ?? 'python3',
-    managePyDir: json['managePyDir'] as String? ?? '',
+    frontendDir: json['frontendDir'] as String? ?? '',
+    frontendCommand: json['frontendCommand'] as String? ?? 'npm run build',
+    distFolder: json['distFolder'] as String? ?? 'dist',
+    backendDir: json['backendDir'] as String? ?? '',
+    collectstaticCommand: json['collectstaticCommand'] as String? ?? 'python3 manage.py collectstatic --noinput',
   );
 
   String toJsonString() => jsonEncode(toJson());
