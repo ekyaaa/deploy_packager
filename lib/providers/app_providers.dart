@@ -1,14 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/git_commit.dart';
 import '../models/changed_file.dart';
+import '../models/build_config.dart';
 import '../services/git_service.dart';
 import '../services/export_service.dart';
+import '../services/build_service.dart';
 import '../services/settings_service.dart';
 
 // ─── Services ───────────────────────────────────────────────
 
 final gitServiceProvider = Provider<GitService>((ref) => GitService());
 final exportServiceProvider = Provider<ExportService>((ref) => ExportService());
+final buildServiceProvider = Provider<BuildService>((ref) => BuildService());
 final settingsServiceProvider = Provider<SettingsService>((ref) {
   throw UnimplementedError('Must be overridden in main.dart');
 });
@@ -41,7 +44,53 @@ final changedFilesProvider = FutureProvider<List<ChangedFile>>((ref) async {
   return gitService.getChangedFiles(path, selectedHashes.toList());
 });
 
-// ─── Step 4: Export ─────────────────────────────────────────
+// ─── Step 4: Build Config ───────────────────────────────────
+
+final buildConfigProvider = StateNotifierProvider<BuildConfigNotifier, BuildConfig>((ref) {
+  final notifier = BuildConfigNotifier(ref);
+  ref.listen(projectPathProvider, (_, next) {
+    if (next != null) {
+      notifier.loadForProject(next);
+    }
+  });
+  return notifier;
+});
+
+class BuildConfigNotifier extends StateNotifier<BuildConfig> {
+  final Ref ref;
+
+  BuildConfigNotifier(this.ref) : super(const BuildConfig()) {
+    final projectPath = ref.read(projectPathProvider);
+    if (projectPath != null) {
+      final saved = ref.read(settingsServiceProvider).getBuildConfig(projectPath);
+      if (saved != null) state = saved;
+    }
+  }
+
+  void loadForProject(String projectPath) {
+    final saved = ref.read(settingsServiceProvider).getBuildConfig(projectPath);
+    state = saved ?? const BuildConfig();
+  }
+
+  void update(BuildConfig config) {
+    state = config;
+    final projectPath = ref.read(projectPathProvider);
+    if (projectPath != null) {
+      ref.read(settingsServiceProvider).setBuildConfig(projectPath, config);
+    }
+  }
+
+  void toggleEnabled() => update(state.copyWith(enabled: !state.enabled));
+
+  void setPackageManager(String v) => update(state.copyWith(packageManager: v));
+  void setBuildCommand(String v) => update(state.copyWith(buildCommand: v));
+  void setDistFolder(String v) => update(state.copyWith(distFolder: v));
+  void toggleCollectstatic() => update(state.copyWith(runCollectstatic: !state.runCollectstatic));
+  void setPythonPath(String v) => update(state.copyWith(pythonPath: v));
+  void setManagePyDir(String v) => update(state.copyWith(managePyDir: v));
+}
+
+// ─── Step 5: Export ─────────────────────────────────────────
 
 enum ExportStatus { idle, picking, exporting, success, error }
 
@@ -51,6 +100,7 @@ class ExportState {
   final double progress;
   final ExportResult? result;
   final String? errorMessage;
+  final String? buildOutput;
 
   const ExportState({
     this.status = ExportStatus.idle,
@@ -58,6 +108,7 @@ class ExportState {
     this.progress = 0.0,
     this.result,
     this.errorMessage,
+    this.buildOutput,
   });
 
   ExportState copyWith({
@@ -66,6 +117,7 @@ class ExportState {
     double? progress,
     ExportResult? result,
     String? errorMessage,
+    String? buildOutput,
   }) {
     return ExportState(
       status: status ?? this.status,
@@ -73,6 +125,7 @@ class ExportState {
       progress: progress ?? this.progress,
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
+      buildOutput: buildOutput ?? this.buildOutput,
     );
   }
 }
@@ -81,7 +134,6 @@ class ExportNotifier extends StateNotifier<ExportState> {
   final Ref ref;
 
   ExportNotifier(this.ref) : super(const ExportState()) {
-    // Auto-load saved export path
     final settings = ref.read(settingsServiceProvider);
     final savedPath = settings.exportPath;
     if (savedPath != null) {
@@ -91,7 +143,6 @@ class ExportNotifier extends StateNotifier<ExportState> {
 
   void setDestinationPath(String path) {
     state = state.copyWith(destinationPath: path, status: ExportStatus.idle);
-    // Persist the export path
     ref.read(settingsServiceProvider).setExportPath(path);
   }
 
@@ -114,21 +165,82 @@ class ExportNotifier extends StateNotifier<ExportState> {
     state = state.copyWith(status: ExportStatus.exporting, progress: 0.0);
 
     try {
+      final buildConfig = ref.read(buildConfigProvider);
+      final buildService = ref.read(buildServiceProvider);
       final exportService = ref.read(exportServiceProvider);
+      final dest = state.destinationPath!;
+      final outputLines = <String>[];
+
+      // ── Build step ──────────────────────────────────────────
+      if (buildConfig.enabled) {
+        // Frontend build
+        final buildResult = await buildService.runFrontendBuild(
+          projectPath, buildConfig,
+        );
+        outputLines.add('[npm/pnpm build] ${buildResult.success ? "OK" : "FAILED"}');
+        if (buildResult.output.isNotEmpty) {
+          final lines = buildResult.output.split('\n');
+          outputLines.addAll(lines.take(10));
+          if (lines.length > 10) outputLines.add('... (${lines.length - 10} more lines)');
+        }
+
+        if (buildResult.success) {
+          final distSource = '$projectPath/${buildConfig.distFolder}';
+          await buildService.copyFolderContents(
+            sourcePath: distSource,
+            destPath: '$dest/static/${buildConfig.distFolder}',
+          );
+          outputLines.add('  → Copied ${buildConfig.distFolder}/ to static/${buildConfig.distFolder}/');
+        } else {
+          outputLines.add('  → Error: ${buildResult.error}');
+        }
+
+        // Collectstatic
+        if (buildConfig.runCollectstatic) {
+          final csResult = await buildService.runCollectstatic(
+            projectPath, buildConfig,
+          );
+          outputLines.add('[collectstatic] ${csResult.success ? "OK" : "FAILED"}');
+
+          if (csResult.success) {
+            final csSource = buildConfig.managePyDir.isNotEmpty
+                ? '$projectPath/${buildConfig.managePyDir}/collected'
+                : '$projectPath/collected';
+            await buildService.copyFolderContents(
+              sourcePath: csSource,
+              destPath: '$dest/static/collected',
+            );
+            outputLines.add('  → Copied collected/ to static/collected/');
+          } else {
+            outputLines.add('  → Error: ${csResult.error}');
+          }
+        }
+      }
+
+      // ── File export ─────────────────────────────────────────
+      final totalPhases = (buildConfig.enabled ? 1 : 0) + 1;
+      int completedPhases = 1;
+      if (buildConfig.enabled) completedPhases = 2;
+
       final result = await exportService.exportFiles(
         sourcePath: projectPath,
-        destinationPath: state.destinationPath!,
+        destinationPath: dest,
         files: changedFiles,
         onProgress: (current, total) {
-          state = state.copyWith(progress: current / total);
+          final fileProgress = current / total;
+          final overall = (completedPhases - 1 + fileProgress) / totalPhases;
+          state = state.copyWith(progress: overall.clamp(0.0, 1.0));
         },
       );
+
+      final buildLog = outputLines.join('\n');
 
       state = state.copyWith(
         status: result.hasErrors ? ExportStatus.error : ExportStatus.success,
         result: result,
         progress: 1.0,
         errorMessage: result.hasErrors ? result.errors.join('\n') : null,
+        buildOutput: buildLog.isNotEmpty ? buildLog : null,
       );
     } catch (e) {
       state = state.copyWith(

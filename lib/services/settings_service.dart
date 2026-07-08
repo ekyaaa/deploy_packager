@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/build_config.dart';
 
 class SettingsService {
   static const _keyProjectPath = 'project_path';
   static const _keyExportPath = 'export_path';
   static const _keyProjectHistory = 'project_history';
+  static const _keyBuildConfigPrefix = 'build_config_';
   static const _maxHistory = 10;
 
   late final SharedPreferences _prefs;
@@ -65,5 +68,29 @@ class SettingsService {
     await _prefs.remove(_keyProjectPath);
     await _prefs.remove(_keyExportPath);
     await _prefs.remove(_keyProjectHistory);
+  }
+
+  /// Get the build config for a given project path.
+  BuildConfig? getBuildConfig(String projectPath) {
+    final key = '$_keyBuildConfigPrefix${_hashPath(projectPath)}';
+    final jsonStr = _prefs.getString(key);
+    if (jsonStr == null) return null;
+    try {
+      return BuildConfig.fromJsonString(jsonStr);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Save the build config for a given project path.
+  Future<void> setBuildConfig(String projectPath, BuildConfig config) async {
+    final key = '$_keyBuildConfigPrefix${_hashPath(projectPath)}';
+    await _prefs.setString(key, config.toJsonString());
+  }
+
+  /// Simple hash for project path keys.
+  String _hashPath(String path) {
+    final bytes = utf8.encode(path);
+    return base64Encode(bytes);
   }
 }

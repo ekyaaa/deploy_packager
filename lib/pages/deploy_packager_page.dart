@@ -5,6 +5,7 @@ import '../providers/app_providers.dart';
 import '../widgets/step_project_picker.dart';
 import '../widgets/step_commit_list.dart';
 import '../widgets/step_changed_files.dart';
+import '../widgets/step_build_config.dart';
 import '../widgets/step_export.dart';
 
 class DeployPackagerPage extends ConsumerStatefulWidget {
@@ -15,12 +16,15 @@ class DeployPackagerPage extends ConsumerStatefulWidget {
 }
 
 class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
-  static const _stepLabels = ['Project', 'Commits', 'Changed Files', 'Export'];
+  static const _stepLabels = [
+    'Project', 'Commits', 'Changed Files', 'Build', 'Export',
+  ];
 
   static const _stepIcons = [
     Icons.folder_outlined,
     Icons.history_outlined,
     Icons.compare_arrows_outlined,
+    Icons.construction_rounded,
     Icons.rocket_launch_outlined,
   ];
 
@@ -189,7 +193,8 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
       0 => const StepProjectPicker(key: ValueKey('step_0')),
       1 => const StepCommitList(key: ValueKey('step_1')),
       2 => const StepChangedFiles(key: ValueKey('step_2')),
-      3 => const StepExport(key: ValueKey('step_3')),
+      3 => const StepBuildConfig(key: ValueKey('step_3')),
+      4 => const StepExport(key: ValueKey('step_4')),
       _ => const SizedBox.shrink(),
     };
   }
