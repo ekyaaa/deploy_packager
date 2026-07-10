@@ -60,6 +60,12 @@ class StepExport extends ConsumerWidget {
                 if (exportState.status != ExportStatus.success)
                   _buildDestPicker(context, ref, colors, exportState),
 
+                if (exportState.status != ExportStatus.exporting &&
+                    exportState.status != ExportStatus.success) ...[
+                  const SizedBox(height: 12),
+                  _buildCleanToggle(context, colors, exportState, ref),
+                ],
+
                 if (exportState.status == ExportStatus.exporting) ...[
                   const SizedBox(height: 24),
                   _buildProgress(colors, exportState),
@@ -236,6 +242,100 @@ class StepExport extends ConsumerWidget {
                 color: Colors.red.shade200,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCleanToggle(
+    BuildContext ctx,
+    ColorScheme c,
+    ExportState state,
+    WidgetRef ref,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: state.cleanDestination
+            ? Colors.orange.withValues(alpha: 0.08)
+            : Colors.transparent,
+        border: Border.all(
+          color: state.cleanDestination
+              ? Colors.orange.withValues(alpha: 0.25)
+              : c.onSurface.withValues(alpha: 0.06),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.cleaning_services_rounded,
+            size: 18,
+            color: state.cleanDestination
+                ? Colors.orange
+                : c.onSurface.withValues(alpha: 0.35),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Clean destination folder',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: state.cleanDestination
+                        ? Colors.orange.shade200
+                        : c.onSurface.withValues(alpha: 0.7),
+                  ),
+                ),
+                Text(
+                  'Removes all files before export',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: c.onSurface.withValues(alpha: 0.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: state.cleanDestination,
+            onChanged: (value) {
+              if (value) {
+                showDialog(
+                  context: ctx,
+                  builder: (dialogCtx) => AlertDialog(
+                    title: const Text('Clean destination?'),
+                    content: const Text(
+                      'All files and folders inside the destination will be permanently '
+                      'deleted before export. This cannot be undone.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogCtx).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          Navigator.of(dialogCtx).pop();
+                          ref.read(exportProvider.notifier).toggleCleanDestination();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                        ),
+                        child: const Text('Yes, clean it'),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                ref.read(exportProvider.notifier).toggleCleanDestination();
+              }
+            },
+            activeThumbColor: Colors.orange,
           ),
         ],
       ),

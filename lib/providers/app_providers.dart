@@ -103,6 +103,7 @@ class ExportState {
   final ExportResult? result;
   final String? errorMessage;
   final String? buildOutput;
+  final bool cleanDestination;
 
   const ExportState({
     this.status = ExportStatus.idle,
@@ -111,6 +112,7 @@ class ExportState {
     this.result,
     this.errorMessage,
     this.buildOutput,
+    this.cleanDestination = false,
   });
 
   ExportState copyWith({
@@ -120,6 +122,7 @@ class ExportState {
     ExportResult? result,
     String? errorMessage,
     String? buildOutput,
+    bool? cleanDestination,
   }) {
     return ExportState(
       status: status ?? this.status,
@@ -128,6 +131,7 @@ class ExportState {
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
       buildOutput: buildOutput ?? this.buildOutput,
+      cleanDestination: cleanDestination ?? this.cleanDestination,
     );
   }
 }
@@ -141,11 +145,20 @@ class ExportNotifier extends StateNotifier<ExportState> {
     if (savedPath != null) {
       state = state.copyWith(destinationPath: savedPath);
     }
+    if (settings.cleanDestination) {
+      state = state.copyWith(cleanDestination: true);
+    }
   }
 
   void setDestinationPath(String path) {
     state = state.copyWith(destinationPath: path, status: ExportStatus.idle);
     ref.read(settingsServiceProvider).setExportPath(path);
+  }
+
+  void toggleCleanDestination() {
+    final next = !state.cleanDestination;
+    state = state.copyWith(cleanDestination: next);
+    ref.read(settingsServiceProvider).setCleanDestination(next);
   }
 
   Future<void> startExport() async {
@@ -172,6 +185,20 @@ class ExportNotifier extends StateNotifier<ExportState> {
       final exportService = ref.read(exportServiceProvider);
       final dest = state.destinationPath!;
       final outputLines = <String>[];
+
+      // ── Clean destination ────────────────────────────────────
+      if (state.cleanDestination) {
+        outputLines.add('> Cleaning destination folder...');
+        final destDir = Directory(dest);
+        if (await destDir.exists()) {
+          int deletedCount = 0;
+          await for (final entity in destDir.list()) {
+            await entity.delete(recursive: true);
+            deletedCount++;
+          }
+          outputLines.add('  → Removed $deletedCount item(s)');
+        }
+      }
 
       // ── Build step ──────────────────────────────────────────
       if (buildConfig.enabled) {
@@ -287,7 +314,7 @@ class ExportNotifier extends StateNotifier<ExportState> {
   }
 
   void reset() {
-    state = const ExportState();
+    state = ExportState(cleanDestination: state.cleanDestination);
   }
 }
 

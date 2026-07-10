@@ -205,19 +205,27 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
             onChanged: (v) => ref.read(buildConfigProvider.notifier).setFrontendCommand(v),
           ),
           const SizedBox(height: 16),
-          _label(colors, 'Output Path (relative to project root)'),
+          _label(colors, 'Source path (relative to project root)'),
+          const SizedBox(height: 4),
+          Text(
+            'Where does your build output go inside your project?',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: colors.onSurface.withValues(alpha: 0.45),
+            ),
+          ),
           const SizedBox(height: 8),
           TextField(
             controller: _frontendOutputCtrl,
             decoration: _inputDecoration(colors).copyWith(
-              hintText: 'static/dist',
+              hintText: 'e.g. dist, frontend/dist, static/dist',
             ),
             style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
             onChanged: (v) => ref.read(buildConfigProvider.notifier).setFrontendOutput(v),
           ),
           const SizedBox(height: 8),
           Text(
-            '→ static/${config.frontendOutput.split('/').last}/',
+            'Will be copied to:  static/${config.frontendOutput.split('/').last}/',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 11,
               color: colors.primary.withValues(alpha: 0.6),
@@ -282,19 +290,27 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
               onChanged: (v) => ref.read(buildConfigProvider.notifier).setCollectstaticCommand(v),
             ),
             const SizedBox(height: 16),
-            _label(colors, 'Output Path (relative to project root)'),
+            _label(colors, 'Source path (relative to project root)'),
+            const SizedBox(height: 4),
+            Text(
+              'Where does collectstatic output go inside your project?',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: colors.onSurface.withValues(alpha: 0.45),
+              ),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _collectstaticOutputCtrl,
               decoration: _inputDecoration(colors).copyWith(
-                hintText: 'collected',
+                hintText: 'e.g. collected, static/collected',
               ),
               style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
               onChanged: (v) => ref.read(buildConfigProvider.notifier).setCollectstaticOutput(v),
             ),
             const SizedBox(height: 8),
             Text(
-              '→ static/${config.collectstaticOutput.split('/').last}/',
+              'Will be copied to:  static/${config.collectstaticOutput.split('/').last}/',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 11,
                 color: colors.primary.withValues(alpha: 0.6),

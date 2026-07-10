@@ -7,6 +7,7 @@ class SettingsService {
   static const _keyExportPath = 'export_path';
   static const _keyProjectHistory = 'project_history';
   static const _keyBuildConfigPrefix = 'build_config_';
+  static const _keyCleanDestination = 'clean_destination';
   static const _maxHistory = 10;
 
   late final SharedPreferences _prefs;
@@ -61,6 +62,14 @@ class SettingsService {
   /// Save the export path.
   Future<void> setExportPath(String path) async {
     await _prefs.setString(_keyExportPath, path);
+  }
+
+  /// Get the saved clean destination setting.
+  bool get cleanDestination => _prefs.getBool(_keyCleanDestination) ?? false;
+
+  /// Save the clean destination setting.
+  Future<void> setCleanDestination(bool value) async {
+    await _prefs.setBool(_keyCleanDestination, value);
   }
 
   /// Clear all saved settings.
