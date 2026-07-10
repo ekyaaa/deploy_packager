@@ -75,14 +75,18 @@ class BuildService {
     );
   }
 
-  Future<void> copyFolderContents({
+  /// Returns the number of files copied. Throws if source does not exist.
+  Future<int> copyFolderContents({
     required String sourcePath,
     required String destPath,
   }) async {
     final sourceDir = Directory(sourcePath);
-    if (!await sourceDir.exists()) return;
+    if (!await sourceDir.exists()) {
+      throw Exception('Source directory not found: $sourcePath');
+    }
 
     await Directory(destPath).create(recursive: true);
+    int count = 0;
 
     await for (final entity in sourceDir.list(recursive: true)) {
       if (entity is File) {
@@ -90,7 +94,10 @@ class BuildService {
         final destFile = File('$destPath/$relativePath');
         await destFile.parent.create(recursive: true);
         await entity.copy(destFile.path);
+        count++;
       }
     }
+
+    return count;
   }
 }

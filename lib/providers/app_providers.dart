@@ -86,9 +86,10 @@ class BuildConfigNotifier extends StateNotifier<BuildConfig> {
 
   void setFrontendDir(String v) => update(state.copyWith(frontendDir: v));
   void setFrontendCommand(String v) => update(state.copyWith(frontendCommand: v));
-  void setDistFolder(String v) => update(state.copyWith(distFolder: v));
+  void setFrontendOutput(String v) => update(state.copyWith(frontendOutput: v));
   void setBackendDir(String v) => update(state.copyWith(backendDir: v));
   void setCollectstaticCommand(String v) => update(state.copyWith(collectstaticCommand: v));
+  void setCollectstaticOutput(String v) => update(state.copyWith(collectstaticOutput: v));
 }
 
 // ─── Step 5: Export ─────────────────────────────────────────
@@ -174,17 +175,20 @@ class ExportNotifier extends StateNotifier<ExportState> {
 
       // ── Build step ──────────────────────────────────────────
       if (buildConfig.enabled) {
+        // Frontend build
+        state = state.copyWith(
+          progress: 0.0,
+          buildOutput: 'Building frontend...\n> ${buildConfig.frontendCommand}',
+        );
+
         outputLines.add('> cd ${buildConfig.frontendDir.isNotEmpty ? buildConfig.frontendDir : '.'}');
         outputLines.add('> ${buildConfig.frontendCommand}');
 
         final buildResult = await buildService.runFrontendBuild(
           projectPath, buildConfig,
         );
-        if (buildResult.success) {
-          outputLines.add('✓ Frontend build OK');
-        } else {
-          outputLines.add('✗ Frontend build FAILED');
-        }
+        outputLines.add(buildResult.success ? '✓ Frontend build OK' : '✗ Frontend build FAILED');
+
         if (buildResult.output.isNotEmpty) {
           final lines = buildResult.output.split('\n');
           outputLines.addAll(lines.take(10));
@@ -194,20 +198,28 @@ class ExportNotifier extends StateNotifier<ExportState> {
           outputLines.add('  → ${buildResult.error}');
         }
 
+        // Copy frontend output
         if (buildResult.success) {
-          final distSource = '$projectPath/${buildConfig.distFolder}';
-          final resolvedDist = buildConfig.frontendDir.isNotEmpty
-              ? '$projectPath/${buildConfig.frontendDir}/${buildConfig.distFolder}'
-              : distSource;
-          final actualDist = Directory(resolvedDist).existsSync() ? resolvedDist : distSource;
-          await buildService.copyFolderContents(
-            sourcePath: actualDist,
-            destPath: '$dest/static/${buildConfig.distFolder}',
-          );
-          outputLines.add('  → Copied ${buildConfig.distFolder}/ → static/${buildConfig.distFolder}/');
+          final frontendSource = '$projectPath/${buildConfig.frontendOutput}';
+          if (!Directory(frontendSource).existsSync()) {
+            outputLines.add('  ✗ output not found at $frontendSource');
+          } else {
+            final outputName = buildConfig.frontendOutput.split('/').last;
+            final count = await buildService.copyFolderContents(
+              sourcePath: frontendSource,
+              destPath: '$dest/static/$outputName',
+            );
+            outputLines.add('  → Copied $count file(s) to static/$outputName/');
+          }
         }
 
+        // Collectstatic
         if (buildConfig.runCollectstatic) {
+          state = state.copyWith(
+            progress: 0.4,
+            buildOutput: 'Running collectstatic...\n> ${buildConfig.collectstaticCommand}',
+          );
+
           outputLines.add('');
           outputLines.add('> cd ${buildConfig.backendDir.isNotEmpty ? buildConfig.backendDir : '.'}');
           outputLines.add('> ${buildConfig.collectstaticCommand}');
@@ -215,11 +227,8 @@ class ExportNotifier extends StateNotifier<ExportState> {
           final csResult = await buildService.runCollectstatic(
             projectPath, buildConfig,
           );
-          if (csResult.success) {
-            outputLines.add('✓ Collectstatic OK');
-          } else {
-            outputLines.add('✗ Collectstatic FAILED');
-          }
+          outputLines.add(csResult.success ? '✓ Collectstatic OK' : '✗ Collectstatic FAILED');
+
           if (csResult.output.isNotEmpty) {
             final lines = csResult.output.split('\n');
             outputLines.addAll(lines.take(10));
@@ -230,32 +239,32 @@ class ExportNotifier extends StateNotifier<ExportState> {
           }
 
           if (csResult.success) {
-            final csSource = buildConfig.backendDir.isNotEmpty
-                ? '$projectPath/${buildConfig.backendDir}/collected'
-                : '$projectPath/collected';
-            await buildService.copyFolderContents(
-              sourcePath: csSource,
-              destPath: '$dest/static/collected',
-            );
-            outputLines.add('  → Copied collected/ to static/collected/');
-          } else {
-            outputLines.add('  → Error: ${csResult.error}');
+            final csSource = '$projectPath/${buildConfig.collectstaticOutput}';
+            if (!Directory(csSource).existsSync()) {
+              outputLines.add('  ✗ output not found at $csSource');
+            } else {
+              final outputName = buildConfig.collectstaticOutput.split('/').last;
+              final count = await buildService.copyFolderContents(
+                sourcePath: csSource,
+                destPath: '$dest/static/$outputName',
+              );
+              outputLines.add('  → Copied $count file(s) to static/$outputName/');
+            }
           }
         }
+
+        // Update progress after build
+        state = state.copyWith(progress: 0.5);
       }
 
       // ── File export ─────────────────────────────────────────
-      final totalPhases = (buildConfig.enabled ? 1 : 0) + 1;
-      int completedPhases = 1;
-      if (buildConfig.enabled) completedPhases = 2;
-
       final result = await exportService.exportFiles(
         sourcePath: projectPath,
         destinationPath: dest,
         files: changedFiles,
         onProgress: (current, total) {
           final fileProgress = current / total;
-          final overall = (completedPhases - 1 + fileProgress) / totalPhases;
+          final overall = (buildConfig.enabled ? 0.5 : 0.0) + fileProgress * (buildConfig.enabled ? 0.5 : 1.0);
           state = state.copyWith(progress: overall.clamp(0.0, 1.0));
         },
       );

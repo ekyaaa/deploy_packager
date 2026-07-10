@@ -82,8 +82,7 @@ class StepExport extends ConsumerWidget {
                   ),
                 ],
 
-                if (exportState.status == ExportStatus.success &&
-                    exportState.buildOutput != null) ...[
+                if (exportState.buildOutput != null) ...[
                   const SizedBox(height: 16),
                   _BuildOutputCard(
                     output: exportState.buildOutput!,

@@ -14,9 +14,10 @@ class StepBuildConfig extends ConsumerStatefulWidget {
 class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
   late TextEditingController _frontendDirCtrl;
   late TextEditingController _frontendCmdCtrl;
-  late TextEditingController _distFolderCtrl;
+  late TextEditingController _frontendOutputCtrl;
   late TextEditingController _backendDirCtrl;
   late TextEditingController _collectstaticCmdCtrl;
+  late TextEditingController _collectstaticOutputCtrl;
 
   @override
   void initState() {
@@ -24,18 +25,20 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
     final cfg = ref.read(buildConfigProvider);
     _frontendDirCtrl = TextEditingController(text: cfg.frontendDir);
     _frontendCmdCtrl = TextEditingController(text: cfg.frontendCommand);
-    _distFolderCtrl = TextEditingController(text: cfg.distFolder);
+    _frontendOutputCtrl = TextEditingController(text: cfg.frontendOutput);
     _backendDirCtrl = TextEditingController(text: cfg.backendDir);
     _collectstaticCmdCtrl = TextEditingController(text: cfg.collectstaticCommand);
+    _collectstaticOutputCtrl = TextEditingController(text: cfg.collectstaticOutput);
   }
 
   @override
   void dispose() {
     _frontendDirCtrl.dispose();
     _frontendCmdCtrl.dispose();
-    _distFolderCtrl.dispose();
+    _frontendOutputCtrl.dispose();
     _backendDirCtrl.dispose();
     _collectstaticCmdCtrl.dispose();
+    _collectstaticOutputCtrl.dispose();
     super.dispose();
   }
 
@@ -202,19 +205,19 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
             onChanged: (v) => ref.read(buildConfigProvider.notifier).setFrontendCommand(v),
           ),
           const SizedBox(height: 16),
-          _label(colors, 'Dist Folder Name'),
+          _label(colors, 'Output Path (relative to project root)'),
           const SizedBox(height: 8),
           TextField(
-            controller: _distFolderCtrl,
+            controller: _frontendOutputCtrl,
             decoration: _inputDecoration(colors).copyWith(
-              hintText: 'dist',
+              hintText: 'static/dist',
             ),
             style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
-            onChanged: (v) => ref.read(buildConfigProvider.notifier).setDistFolder(v),
+            onChanged: (v) => ref.read(buildConfigProvider.notifier).setFrontendOutput(v),
           ),
           const SizedBox(height: 8),
           Text(
-            '→ static/${config.distFolder}/',
+            '→ static/${config.frontendOutput.split('/').last}/',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 11,
               color: colors.primary.withValues(alpha: 0.6),
@@ -278,9 +281,20 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
               style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
               onChanged: (v) => ref.read(buildConfigProvider.notifier).setCollectstaticCommand(v),
             ),
+            const SizedBox(height: 16),
+            _label(colors, 'Output Path (relative to project root)'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _collectstaticOutputCtrl,
+              decoration: _inputDecoration(colors).copyWith(
+                hintText: 'collected',
+              ),
+              style: GoogleFonts.jetBrainsMono(fontSize: 13, color: colors.onSurface),
+              onChanged: (v) => ref.read(buildConfigProvider.notifier).setCollectstaticOutput(v),
+            ),
             const SizedBox(height: 8),
             Text(
-              '→ static/collected/',
+              '→ static/${config.collectstaticOutput.split('/').last}/',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 11,
                 color: colors.primary.withValues(alpha: 0.6),
