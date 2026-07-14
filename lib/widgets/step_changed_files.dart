@@ -272,8 +272,8 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
             onPressed: hasFiles
                 ? () => ref.read(currentStepProvider.notifier).state = 3
                 : null,
-            icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-            label: const Text('Proceed to Export'),
+            icon: const Icon(Icons.construction_rounded, size: 18),
+            label: const Text('Configure Build'),
           ),
         ],
       ),
