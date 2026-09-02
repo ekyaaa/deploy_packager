@@ -56,12 +56,27 @@ class SettingsService {
     await _prefs.remove(_keyProjectHistory);
   }
 
+  static const _keyProjectExportPathPrefix = 'export_path_';
+
   /// Get the saved export path.
   String? get exportPath => _prefs.getString(_keyExportPath);
 
-  /// Save the export path.
+  /// Save the default/global export path.
   Future<void> setExportPath(String path) async {
     await _prefs.setString(_keyExportPath, path);
+  }
+
+  /// Get the saved export path for a specific project (with fallback to global exportPath).
+  String? getExportPathForProject(String projectPath) {
+    final key = '$_keyProjectExportPathPrefix${_hashPath(projectPath)}';
+    return _prefs.getString(key) ?? exportPath;
+  }
+
+  /// Save the export path for a specific project and also update the global default.
+  Future<void> setExportPathForProject(String projectPath, String path) async {
+    final key = '$_keyProjectExportPathPrefix${_hashPath(projectPath)}';
+    await _prefs.setString(key, path);
+    await setExportPath(path);
   }
 
   /// Get the saved clean destination setting.

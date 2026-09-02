@@ -141,7 +141,10 @@ class ExportNotifier extends StateNotifier<ExportState> {
 
   ExportNotifier(this.ref) : super(const ExportState()) {
     final settings = ref.read(settingsServiceProvider);
-    final savedPath = settings.exportPath;
+    final projectPath = ref.read(projectPathProvider);
+    final savedPath = projectPath != null
+        ? settings.getExportPathForProject(projectPath)
+        : settings.exportPath;
     if (savedPath != null) {
       state = state.copyWith(destinationPath: savedPath);
     }
@@ -150,9 +153,24 @@ class ExportNotifier extends StateNotifier<ExportState> {
     }
   }
 
+  void loadForProject(String projectPath) {
+    final settings = ref.read(settingsServiceProvider);
+    final savedPath = settings.getExportPathForProject(projectPath);
+    state = state.copyWith(
+      destinationPath: savedPath,
+      status: ExportStatus.idle,
+    );
+  }
+
   void setDestinationPath(String path) {
     state = state.copyWith(destinationPath: path, status: ExportStatus.idle);
-    ref.read(settingsServiceProvider).setExportPath(path);
+    final projectPath = ref.read(projectPathProvider);
+    final settings = ref.read(settingsServiceProvider);
+    if (projectPath != null) {
+      settings.setExportPathForProject(projectPath, path);
+    } else {
+      settings.setExportPath(path);
+    }
   }
 
   void toggleCleanDestination() {
@@ -336,7 +354,13 @@ class ExportNotifier extends StateNotifier<ExportState> {
 final exportProvider = StateNotifierProvider<ExportNotifier, ExportState>((
   ref,
 ) {
-  return ExportNotifier(ref);
+  final notifier = ExportNotifier(ref);
+  ref.listen(projectPathProvider, (_, next) {
+    if (next != null) {
+      notifier.loadForProject(next);
+    }
+  });
+  return notifier;
 });
 
 // ─── Stepper ────────────────────────────────────────────────

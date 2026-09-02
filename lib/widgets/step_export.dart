@@ -418,11 +418,14 @@ class StepExport extends ConsumerWidget {
   }
 
   Future<void> _pickDest(WidgetRef ref) async {
-    // Start at the last used export path
+    // Start at the project-specific destination or last used export path
+    final projectPath = ref.read(projectPathProvider);
     final currentDest = ref.read(exportProvider).destinationPath;
-    final savedExport = ref.read(settingsServiceProvider).exportPath;
+    final savedExport = projectPath != null
+        ? ref.read(settingsServiceProvider).getExportPathForProject(projectPath)
+        : ref.read(settingsServiceProvider).exportPath;
     final initialDir = currentDest ?? savedExport;
-    
+
     String? validInitialDir;
     if (initialDir != null && Directory(initialDir).existsSync()) {
       validInitialDir = initialDir;
