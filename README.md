@@ -45,4 +45,25 @@ flutter run
 
 ---
 
+## 🔖 Versioning
+
+This project uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`) with automated releases via [release-please](https://github.com/googleapis/release-please).
+
+- **Source of truth:** `pubspec.yaml:4` (`version: 1.0.0+1` — `+1` is the Android/Windows build number).
+- **Changelog:** [`CHANGELOG.md`](CHANGELOG.md) (Keep a Changelog format).
+- **Tags:** `vX.Y.Z` (e.g., `v1.0.1`) created automatically when a Release PR is merged.
+
+### How to release
+
+1. Merge conventional commits to `main` (`feat:`, `fix:`, `feat!:`, etc.):
+   - `fix:` → patch bump (`1.0.0` → `1.0.1`)
+   - `feat:` → minor bump (`1.0.0` → `1.1.0`)
+   - `feat!:` / `BREAKING CHANGE:` → major bump (`1.0.0` → `2.0.0`)
+2. `release-please` opens/updates a **Release PR** (`release-please--branches--main`) with version bump in `pubspec.yaml`, `.release-please-manifest.json`, and `CHANGELOG.md`.
+3. Merge the Release PR → automatically creates tag `vX.Y.Z` + GitHub Release. Windows installer artifact is versioned as `deploy_packager_setup-vX.Y.Z.exe` (read from `pubspec.yaml` in CI).
+
+No manual `git tag` or changelog edits needed.
+
+---
+
 *Made with ❤️ by a developer who hates manual copy-paste.*
