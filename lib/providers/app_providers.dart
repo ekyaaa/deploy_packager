@@ -284,13 +284,28 @@ class ExportNotifier extends StateNotifier<ExportState> {
         state = state.copyWith(progress: 0.5);
       }
 
+      // ── Generate delete script for deleted files ───────────
+      final deletedFiles = changedFiles.where((f) => f.isDeleted).toList();
+      bool scriptGenerated = false;
+      if (deletedFiles.isNotEmpty) {
+        scriptGenerated = await exportService.generateDeleteScript(
+          destinationPath: dest,
+          deletedFiles: deletedFiles,
+        );
+        if (scriptGenerated) {
+          outputLines.add('> Generated delete_files.sh for ${deletedFiles.length} deleted file(s)');
+        }
+      }
+
       // ── File export ─────────────────────────────────────────
       final result = await exportService.exportFiles(
         sourcePath: projectPath,
         destinationPath: dest,
         files: changedFiles,
+        deletedFilesCount: deletedFiles.length,
+        scriptGenerated: scriptGenerated,
         onProgress: (current, total) {
-          final fileProgress = current / total;
+          final fileProgress = total > 0 ? current / total : 1.0;
           final overall = (buildConfig.enabled ? 0.5 : 0.0) + fileProgress * (buildConfig.enabled ? 0.5 : 1.0);
           state = state.copyWith(progress: overall.clamp(0.0, 1.0));
         },

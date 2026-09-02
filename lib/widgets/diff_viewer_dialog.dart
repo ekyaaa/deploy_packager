@@ -178,6 +178,7 @@ class _DiffViewerDialogState extends ConsumerState<DiffViewerDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (diff.isDeleted) _buildDeletedBanner(colors),
         _buildTimelineInfo(diff, colors),
         const Divider(height: 0, thickness: 1),
         Expanded(
@@ -192,6 +193,34 @@ class _DiffViewerDialogState extends ConsumerState<DiffViewerDialog> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDeletedBanner(ColorScheme colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.12),
+        border: Border(
+          bottom: BorderSide(color: Colors.red.withValues(alpha: 0.25)),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'File Dihapus (Deleted File) — File ini telah dihapus pada commit terbaru yang dipilih.',
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: Colors.red.shade300,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

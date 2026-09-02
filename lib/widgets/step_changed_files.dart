@@ -48,8 +48,13 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
     );
   }
 
-  Widget _buildHeader(ColorScheme c, AsyncValue av, Set<String> sel) {
-    final count = av.valueOrNull?.length ?? 0;
+  Widget _buildHeader(ColorScheme c, AsyncValue<List<ChangedFile>> av, Set<String> sel) {
+    final files = av.valueOrNull ?? [];
+    final count = files.length;
+    final addedCount = files.where((f) => f.isAdded).length;
+    final modifiedCount = files.where((f) => f.isModified).length;
+    final deletedCount = files.where((f) => f.isDeleted).length;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 12, 28, 8),
       child: Column(
@@ -67,7 +72,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
                 ),
               ),
               const SizedBox(width: 12),
-              if (count > 0)
+              if (count > 0) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -78,7 +83,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '$count files',
+                    '$count total',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -86,6 +91,31 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
                     ),
                   ),
                 ),
+                if (addedCount > 0) ...[
+                  const SizedBox(width: 6),
+                  _buildCountPill(
+                    label: '$addedCount added',
+                    color: Colors.green,
+                    icon: Icons.add_circle_outline_rounded,
+                  ),
+                ],
+                if (modifiedCount > 0) ...[
+                  const SizedBox(width: 6),
+                  _buildCountPill(
+                    label: '$modifiedCount modified',
+                    color: Colors.blue,
+                    icon: Icons.edit_note_rounded,
+                  ),
+                ],
+                if (deletedCount > 0) ...[
+                  const SizedBox(width: 6),
+                  _buildCountPill(
+                    label: '$deletedCount deleted',
+                    color: Colors.red,
+                    icon: Icons.remove_circle_outline_rounded,
+                  ),
+                ],
+              ],
               const Spacer(),
               Text(
                 '${sel.length} commit(s)',
@@ -119,6 +149,36 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCountPill({
+    required String label,
+    required MaterialColor color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color.shade300),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color.shade300,
+            ),
+          ),
         ],
       ),
     );
@@ -288,6 +348,10 @@ class _FileTile extends StatelessWidget {
   const _FileTile({required this.file, required this.index, required this.onTap});
 
   IconData _icon(String name) {
+    if (file.isDeleted) {
+      return Icons.delete_outline_rounded;
+    }
+
     final ext = name.split('.').last.toLowerCase();
     return switch (ext) {
       'dart' || 'py' || 'java' || 'kt' || 'swift' => Icons.code_rounded,
@@ -302,9 +366,43 @@ class _FileTile extends StatelessWidget {
     };
   }
 
+  Widget _buildStatusBadge() {
+    final (Color color, String text, IconData icon) = switch (file.changeType) {
+      FileChangeType.added => (Colors.green, 'Added', Icons.add_rounded),
+      FileChangeType.modified => (Colors.blue, 'Modified', Icons.edit_rounded),
+      FileChangeType.deleted => (Colors.red, 'Deleted', Icons.remove_rounded),
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: GoogleFonts.inter(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = Theme.of(context).colorScheme;
+    final isDeleted = file.isDeleted;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Material(
@@ -316,8 +414,14 @@ class _FileTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
-              color: c.surfaceContainerHigh.withValues(alpha: 0.35),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
+              color: isDeleted
+                  ? Colors.red.withValues(alpha: 0.04)
+                  : c.surfaceContainerHigh.withValues(alpha: 0.35),
+              border: Border.all(
+                color: isDeleted
+                    ? Colors.red.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.03),
+              ),
             ),
             child: Row(
               children: [
@@ -327,7 +431,9 @@ class _FileTile extends StatelessWidget {
                     '${index + 1}',
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 11,
-                      color: c.onSurface.withValues(alpha: 0.3),
+                      color: isDeleted
+                          ? Colors.red.withValues(alpha: 0.4)
+                          : c.onSurface.withValues(alpha: 0.3),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -336,7 +442,9 @@ class _FileTile extends StatelessWidget {
                 Icon(
                   _icon(file.fileName),
                   size: 18,
-                  color: c.primary.withValues(alpha: 0.7),
+                  color: isDeleted
+                      ? Colors.red.shade400
+                      : c.primary.withValues(alpha: 0.7),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -349,7 +457,12 @@ class _FileTile extends StatelessWidget {
                             text: '${file.directory}/',
                             style: GoogleFonts.jetBrainsMono(
                               fontSize: 12.5,
-                              color: c.onSurface.withValues(alpha: 0.4),
+                              color: isDeleted
+                                  ? Colors.red.withValues(alpha: 0.35)
+                                  : c.onSurface.withValues(alpha: 0.4),
+                              decoration: isDeleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                           ),
                         TextSpan(
@@ -357,14 +470,26 @@ class _FileTile extends StatelessWidget {
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w500,
-                            color: c.onSurface.withValues(alpha: 0.85),
+                            color: isDeleted
+                                ? Colors.red.shade300
+                                : c.onSurface.withValues(alpha: 0.85),
+                            decoration: isDeleted
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                Icon(Icons.open_in_new_rounded, size: 16, color: c.onSurface.withValues(alpha: 0.3)),
+                const SizedBox(width: 8),
+                _buildStatusBadge(),
+                const SizedBox(width: 10),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 16,
+                  color: c.onSurface.withValues(alpha: 0.3),
+                ),
               ],
             ),
           ),
