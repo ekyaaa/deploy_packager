@@ -312,6 +312,8 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
 
   Widget _buildBottom(ColorScheme c, AsyncValue av) {
     final hasFiles = (av.valueOrNull ?? []).isNotEmpty;
+    final isBuildEnabled = ref.watch(buildConfigProvider).enabled;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -332,8 +334,15 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
             onPressed: hasFiles
                 ? () => ref.read(currentStepProvider.notifier).state = 3
                 : null,
-            icon: const Icon(Icons.construction_rounded, size: 18),
-            label: const Text('Configure Build'),
+            icon: Icon(
+              isBuildEnabled
+                  ? Icons.construction_rounded
+                  : Icons.rocket_launch_rounded,
+              size: 18,
+            ),
+            label: Text(
+              isBuildEnabled ? 'Configure Build' : 'Proceed to Export',
+            ),
           ),
         ],
       ),

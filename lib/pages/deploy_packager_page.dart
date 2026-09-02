@@ -16,22 +16,35 @@ class DeployPackagerPage extends ConsumerStatefulWidget {
 }
 
 class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
-  static const _stepLabels = [
-    'Project', 'Commits', 'Changed Files', 'Build', 'Export',
-  ];
+  List<String> _getStepLabels(bool isBuildEnabled) {
+    return [
+      'Project',
+      'Commits',
+      'Changed Files',
+      if (isBuildEnabled) 'Build',
+      'Export',
+    ];
+  }
 
-  static const _stepIcons = [
-    Icons.folder_outlined,
-    Icons.history_outlined,
-    Icons.compare_arrows_outlined,
-    Icons.construction_rounded,
-    Icons.rocket_launch_outlined,
-  ];
+  List<IconData> _getStepIcons(bool isBuildEnabled) {
+    return [
+      Icons.folder_outlined,
+      Icons.history_outlined,
+      Icons.compare_arrows_outlined,
+      if (isBuildEnabled) Icons.construction_rounded,
+      Icons.rocket_launch_outlined,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final currentStep = ref.watch(currentStepProvider);
+    final buildConfig = ref.watch(buildConfigProvider);
+    final isBuildEnabled = buildConfig.enabled;
     final colors = Theme.of(context).colorScheme;
+
+    final stepLabels = _getStepLabels(isBuildEnabled);
+    final stepIcons = _getStepIcons(isBuildEnabled);
 
     return Scaffold(
       body: Column(
@@ -40,7 +53,13 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
           _buildHeader(context, colors),
 
           // ─── Step Indicator ─────────────────────────────────
-          _buildStepIndicator(context, currentStep, colors),
+          _buildStepIndicator(
+            context,
+            currentStep,
+            colors,
+            stepLabels,
+            stepIcons,
+          ),
 
           const SizedBox(height: 8),
 
@@ -62,7 +81,7 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
                   ),
                 );
               },
-              child: _buildStepContent(currentStep),
+              child: _buildStepContent(currentStep, isBuildEnabled),
             ),
           ),
         ],
@@ -148,11 +167,13 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
     BuildContext context,
     int currentStep,
     ColorScheme colors,
+    List<String> labels,
+    List<IconData> icons,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
       child: Row(
-        children: List.generate(_stepLabels.length * 2 - 1, (index) {
+        children: List.generate(labels.length * 2 - 1, (index) {
           if (index.isOdd) {
             // Connector line
             final stepIndex = index ~/ 2;
@@ -177,8 +198,8 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
           final isCompleted = stepIndex < currentStep;
 
           return _StepDot(
-            label: _stepLabels[stepIndex],
-            icon: _stepIcons[stepIndex],
+            label: labels[stepIndex],
+            icon: icons[stepIndex],
             isActive: isActive,
             isCompleted: isCompleted,
             colors: colors,
@@ -188,15 +209,25 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
     );
   }
 
-  Widget _buildStepContent(int currentStep) {
-    return switch (currentStep) {
-      0 => const StepProjectPicker(key: ValueKey('step_0')),
-      1 => const StepCommitList(key: ValueKey('step_1')),
-      2 => const StepChangedFiles(key: ValueKey('step_2')),
-      3 => const StepBuildConfig(key: ValueKey('step_3')),
-      4 => const StepExport(key: ValueKey('step_4')),
-      _ => const SizedBox.shrink(),
-    };
+  Widget _buildStepContent(int currentStep, bool isBuildEnabled) {
+    if (isBuildEnabled) {
+      return switch (currentStep) {
+        0 => const StepProjectPicker(key: ValueKey('step_0')),
+        1 => const StepCommitList(key: ValueKey('step_1')),
+        2 => const StepChangedFiles(key: ValueKey('step_2')),
+        3 => const StepBuildConfig(key: ValueKey('step_3')),
+        4 => const StepExport(key: ValueKey('step_4')),
+        _ => const SizedBox.shrink(),
+      };
+    } else {
+      return switch (currentStep) {
+        0 => const StepProjectPicker(key: ValueKey('step_0')),
+        1 => const StepCommitList(key: ValueKey('step_1')),
+        2 => const StepChangedFiles(key: ValueKey('step_2')),
+        3 => const StepExport(key: ValueKey('step_3')),
+        _ => const SizedBox.shrink(),
+      };
+    }
   }
 
   void _handleReset() {

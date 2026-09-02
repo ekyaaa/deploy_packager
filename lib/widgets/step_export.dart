@@ -350,6 +350,7 @@ class StepExport extends ConsumerWidget {
     ExportState state,
     bool hasFiles,
   ) {
+    final isBuildEnabled = ref.watch(buildConfigProvider).enabled;
     final canExport =
         state.destinationPath != null &&
         hasFiles &&
@@ -367,7 +368,8 @@ class StepExport extends ConsumerWidget {
           OutlinedButton.icon(
             onPressed: state.status == ExportStatus.exporting
                 ? null
-                : () => ref.read(currentStepProvider.notifier).state = 3,
+                : () => ref.read(currentStepProvider.notifier).state =
+                    isBuildEnabled ? 3 : 2,
             icon: const Icon(Icons.arrow_back_rounded, size: 18),
             label: const Text('Back'),
           ),
