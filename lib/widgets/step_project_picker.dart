@@ -132,6 +132,8 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                 _buildPickButton(context, colors),
               ] else ...[
                 _buildSelectedPath(context, colors, selectedPath),
+                const SizedBox(height: 12),
+                _buildBuildToggleCard(context, colors),
               ],
 
               if (_error != null) ...[
@@ -157,7 +159,7 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
               ],
 
               if (selectedPath != null) ...[
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
                 _buildNextButton(context, colors),
               ],
 
@@ -286,6 +288,94 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                 color: colors.onSurface.withValues(alpha: 0.5),
               ),
               tooltip: 'Change folder',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBuildToggleCard(BuildContext context, ColorScheme colors) {
+    final buildConfig = ref.watch(buildConfigProvider);
+    final isEnabled = buildConfig.enabled;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isEnabled
+                    ? colors.primary.withValues(alpha: 0.15)
+                    : colors.onSurface.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.construction_rounded,
+                color: isEnabled
+                    ? colors.primary
+                    : colors.onSurface.withValues(alpha: 0.4),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Enable Build Step',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isEnabled
+                              ? Colors.green.withValues(alpha: 0.12)
+                              : colors.onSurface.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          isEnabled ? 'ON' : 'OFF',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: isEnabled
+                                ? Colors.green.shade300
+                                : colors.onSurface.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    isEnabled
+                        ? 'Frontend build and/or collectstatic will be configured before export'
+                        : 'Skip build step — changed files will be packaged directly',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: colors.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: isEnabled,
+              onChanged: (_) {
+                ref.read(buildConfigProvider.notifier).toggleEnabled();
+              },
             ),
           ],
         ),

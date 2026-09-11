@@ -36,6 +36,19 @@ jobs:
       - name: Build Windows
         run: flutter build windows
 
+      - name: Extract version from pubspec.yaml
+        id: version
+        shell: pwsh
+        run: |
+          $line = Get-Content pubspec.yaml | Where-Object { $_ -match '^version:' }
+          $ver = ($line -replace 'version:\s*','').Trim()
+          $semver = $ver.Split('+')[0].Trim()
+          $build = if ($ver.Contains('+')) { $ver.Split('+')[1].Trim() } else { '1' }
+          echo "full=$ver" >> $env:GITHUB_OUTPUT
+          echo "semver=$semver" >> $env:GITHUB_OUTPUT
+          echo "build=$build" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $ver (semver=$semver build=$build)"
+
       - name: Rename EXE
         shell: pwsh
         run: |
@@ -46,14 +59,18 @@ jobs:
 
       - name: Create installer.iss
         shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.semver }}
         run: |
+          $ver = $env:APP_VERSION
+          if (-not $ver) { $ver = "1.0.0" }
           Set-Content installer.iss "[Setup]"
           Add-Content installer.iss "AppName=deploy_packager"
-          Add-Content installer.iss "AppVersion=1.0"
+          Add-Content installer.iss "AppVersion=$ver"
           Add-Content installer.iss "DefaultDirName={pf}\deploy_packager"
           Add-Content installer.iss "DefaultGroupName=deploy_packager"
           Add-Content installer.iss "OutputDir=output"
-          Add-Content installer.iss "OutputBaseFilename=deploy_packager_setup"
+          Add-Content installer.iss "OutputBaseFilename=deploy_packager_setup-v$ver"
           Add-Content installer.iss "Compression=lzma"
           Add-Content installer.iss "SolidCompression=yes"
           Add-Content installer.iss ""
@@ -62,6 +79,7 @@ jobs:
           Add-Content installer.iss ""
           Add-Content installer.iss "[Icons]"
           Add-Content installer.iss "Name: ""{group}\deploy_packager""; Filename: ""{app}\deploy_packager.exe"""
+          Write-Host "Generated installer.iss with AppVersion=$ver"
 
       - name: Build Installer
         run: iscc installer.iss
@@ -69,5 +87,5 @@ jobs:
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
-          name: deploy-packager-installer
-          path: output/deploy_packager_setup.exe
+          name: deploy-packager-installer-v${{ steps.version.outputs.semver }}
+          path: output/deploy_packager_setup-v${{ steps.version.outputs.semver }}.exe

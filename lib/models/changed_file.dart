@@ -1,7 +1,27 @@
+enum FileChangeType {
+  added,
+  modified,
+  deleted;
+
+  String get label => switch (this) {
+        FileChangeType.added => 'Added',
+        FileChangeType.modified => 'Modified',
+        FileChangeType.deleted => 'Deleted',
+      };
+}
+
 class ChangedFile {
   final String relativePath;
+  final FileChangeType changeType;
 
-  const ChangedFile({required this.relativePath});
+  const ChangedFile({
+    required this.relativePath,
+    this.changeType = FileChangeType.modified,
+  });
+
+  bool get isDeleted => changeType == FileChangeType.deleted;
+  bool get isAdded => changeType == FileChangeType.added;
+  bool get isModified => changeType == FileChangeType.modified;
 
   /// The filename without the directory path.
   String get fileName => relativePath.split('/').last;
@@ -18,8 +38,9 @@ class ChangedFile {
       identical(this, other) ||
       other is ChangedFile &&
           runtimeType == other.runtimeType &&
-          relativePath == other.relativePath;
+          relativePath == other.relativePath &&
+          changeType == other.changeType;
 
   @override
-  int get hashCode => relativePath.hashCode;
+  int get hashCode => Object.hash(relativePath, changeType);
 }

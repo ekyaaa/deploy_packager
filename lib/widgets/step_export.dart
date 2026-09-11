@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/changed_file.dart';
 import '../providers/app_providers.dart';
 import '../services/export_service.dart';
 
@@ -50,7 +51,7 @@ class StepExport extends ConsumerWidget {
                 // Summary card
                 _SummaryCard(
                   projectPath: projectPath,
-                  fileCount: changedFiles.length,
+                  changedFiles: changedFiles,
                   destinationPath: exportState.destinationPath,
                   colors: colors,
                 ),
@@ -349,6 +350,7 @@ class StepExport extends ConsumerWidget {
     ExportState state,
     bool hasFiles,
   ) {
+    final isBuildEnabled = ref.watch(buildConfigProvider).enabled;
     final canExport =
         state.destinationPath != null &&
         hasFiles &&
@@ -366,7 +368,8 @@ class StepExport extends ConsumerWidget {
           OutlinedButton.icon(
             onPressed: state.status == ExportStatus.exporting
                 ? null
-                : () => ref.read(currentStepProvider.notifier).state = 3,
+                : () => ref.read(currentStepProvider.notifier).state =
+                    isBuildEnabled ? 3 : 2,
             icon: const Icon(Icons.arrow_back_rounded, size: 18),
             label: const Text('Back'),
           ),
@@ -415,11 +418,14 @@ class StepExport extends ConsumerWidget {
   }
 
   Future<void> _pickDest(WidgetRef ref) async {
-    // Start at the last used export path
+    // Start at the project-specific destination or last used export path
+    final projectPath = ref.read(projectPathProvider);
     final currentDest = ref.read(exportProvider).destinationPath;
-    final savedExport = ref.read(settingsServiceProvider).exportPath;
+    final savedExport = projectPath != null
+        ? ref.read(settingsServiceProvider).getExportPathForProject(projectPath)
+        : ref.read(settingsServiceProvider).exportPath;
     final initialDir = currentDest ?? savedExport;
-    
+
     String? validInitialDir;
     if (initialDir != null && Directory(initialDir).existsSync()) {
       validInitialDir = initialDir;
@@ -447,19 +453,22 @@ class StepExport extends ConsumerWidget {
 
 class _SummaryCard extends StatelessWidget {
   final String projectPath;
-  final int fileCount;
+  final List<ChangedFile> changedFiles;
   final String? destinationPath;
   final ColorScheme colors;
 
   const _SummaryCard({
     required this.projectPath,
-    required this.fileCount,
+    required this.changedFiles,
     required this.destinationPath,
     required this.colors,
   });
 
   @override
   Widget build(BuildContext context) {
+    final copyCount = changedFiles.where((f) => !f.isDeleted).length;
+    final deletedCount = changedFiles.where((f) => f.isDeleted).length;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -477,7 +486,20 @@ class _SummaryCard extends StatelessWidget {
             const SizedBox(height: 16),
             _row(Icons.source_rounded, 'Source', projectPath),
             const SizedBox(height: 10),
-            _row(Icons.file_copy_outlined, 'Files to copy', '$fileCount files'),
+            _row(
+              Icons.file_copy_outlined,
+              'Files to copy',
+              '$copyCount file(s)',
+            ),
+            if (deletedCount > 0) ...[
+              const SizedBox(height: 10),
+              _row(
+                Icons.delete_outline_rounded,
+                'Deleted files',
+                '$deletedCount file(s) (delete_files.sh will be created)',
+                valueColor: Colors.red.shade300,
+              ),
+            ],
             if (destinationPath != null) ...[
               const SizedBox(height: 10),
               _row(Icons.save_alt_rounded, 'Destination', destinationPath!),
@@ -488,7 +510,7 @@ class _SummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _row(IconData icon, String label, String value) {
+  Widget _row(IconData icon, String label, String value, {Color? valueColor}) {
     return Row(
       children: [
         Icon(icon, size: 18, color: colors.primary.withValues(alpha: 0.7)),
@@ -508,7 +530,7 @@ class _SummaryCard extends StatelessWidget {
             value,
             style: GoogleFonts.inter(
               fontSize: 13,
-              color: colors.onSurface.withValues(alpha: 0.8),
+              color: valueColor ?? colors.onSurface.withValues(alpha: 0.8),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -559,6 +581,8 @@ class _SuccessCardState extends State<_SuccessCard>
   @override
   Widget build(BuildContext context) {
     final c = widget.colors;
+    final res = widget.result;
+
     return FadeTransition(
       opacity: _opacity,
       child: ScaleTransition(
@@ -603,7 +627,7 @@ class _SuccessCardState extends State<_SuccessCard>
               ),
               const SizedBox(height: 8),
               Text(
-                '${widget.result.copiedFiles} of ${widget.result.totalFiles} files copied successfully.',
+                '${res.copiedFiles} active file(s) copied successfully.',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: c.onSurface.withValues(alpha: 0.6),
@@ -617,10 +641,42 @@ class _SuccessCardState extends State<_SuccessCard>
                   color: c.onSurface.withValues(alpha: 0.4),
                 ),
               ),
-              if (widget.result.skippedFiles > 0) ...[
+              if (res.deletedFilesCount > 0) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.terminal_rounded,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Script "delete_files.sh" telah dibuat untuk ${res.deletedFilesCount} file yang dihapus. Jalankan script ini di server untuk menghapus file usang.',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.orange.shade200,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (res.skippedFiles > 0) ...[
                 const SizedBox(height: 12),
                 Text(
-                  '${widget.result.skippedFiles} file(s) skipped.',
+                  '${res.skippedFiles} file(s) skipped.',
                   style: GoogleFonts.inter(fontSize: 12, color: Colors.orange),
                 ),
               ],

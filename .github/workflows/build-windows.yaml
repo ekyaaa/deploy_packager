@@ -41,13 +41,24 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 7. Build Windows app
+      # 7. Extract version from pubspec.yaml
+      - name: Extract version
+        id: version
+        shell: pwsh
+        run: |
+          $line = Get-Content pubspec.yaml | Where-Object { $_ -match '^version:' }
+          $ver = ($line -replace 'version:\s*','').Trim()
+          $semver = $ver.Split('+')[0].Trim()
+          echo "semver=$semver" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $ver (semver=$semver)"
+
+      # 8. Build Windows app
       - name: Build Windows
         run: flutter build windows
 
-      # 8. Upload hasil build (.exe)
+      # 9. Upload hasil build (.exe)
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-build
+          name: windows-build-v${{ steps.version.outputs.semver }}
           path: build/windows/x64/runner/Release/

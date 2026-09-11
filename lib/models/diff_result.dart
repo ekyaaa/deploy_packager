@@ -3,6 +3,7 @@ class DiffResult {
   final String? baseCommitTime;
   final String? newCommitTime;
   final bool isNewFile;
+  final bool isDeleted;
   final bool isBinary;
 
   DiffResult({
@@ -10,6 +11,7 @@ class DiffResult {
     this.baseCommitTime,
     this.newCommitTime,
     this.isNewFile = false,
+    this.isDeleted = false,
     this.isBinary = false,
   });
 }

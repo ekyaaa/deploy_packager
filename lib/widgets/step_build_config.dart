@@ -58,13 +58,9 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildToggleCard(colors, config),
-                  if (config.enabled) ...[
-                    const SizedBox(height: 16),
-                    _buildFrontendSection(colors, config),
-                    const SizedBox(height: 16),
-                    _buildDjangoSection(colors, config),
-                  ],
+                  _buildFrontendSection(colors, config),
+                  const SizedBox(height: 16),
+                  _buildDjangoSection(colors, config),
                   const SizedBox(height: 16),
                   _buildInfoCard(colors),
                 ],
@@ -93,83 +89,22 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
             ),
           ),
           const SizedBox(width: 12),
-          if (config.enabled)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'active',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: colors.primary,
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'enabled',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: colors.primary,
               ),
             ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildToggleCard(ColorScheme colors, BuildConfig config) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: config.enabled
-                    ? colors.primary.withValues(alpha: 0.12)
-                    : colors.onSurface.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.power_settings_new_rounded,
-                color: config.enabled ? colors.primary : colors.onSurface.withValues(alpha: 0.3),
-                size: 22,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Run Build Before Export',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: colors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    config.enabled
-                        ? 'Build will run before files are copied'
-                        : 'Only changed files will be exported',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: colors.onSurface.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Switch(
-              value: config.enabled,
-              onChanged: (_) {
-                ref.read(buildConfigProvider.notifier).toggleEnabled();
-                setState(() {});
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
