@@ -11,5 +11,9 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
+
+    if !self.isZoomed {
+      self.zoom(nil)
+    }
   }
 }
