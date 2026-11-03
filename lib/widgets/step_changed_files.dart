@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_providers.dart';
 import '../models/changed_file.dart';
 import 'diff_viewer_dialog.dart';
+import 'zoom_container.dart';
 
 class StepChangedFiles extends ConsumerStatefulWidget {
   const StepChangedFiles({super.key});
@@ -56,13 +57,13 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
     final deletedCount = files.where((f) => f.isDeleted).length;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 12, 28, 8),
+      padding: context.scaleLTRB(28, 12, 28, 8),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.compare_arrows_rounded, size: 20, color: c.primary),
-              const SizedBox(width: 10),
+              Icon(Icons.compare_arrows_rounded, size: context.scale(20), color: c.primary),
+              SizedBox(width: context.scale(10)),
               Text(
                 'Changed Files',
                 style: GoogleFonts.inter(
@@ -71,16 +72,13 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
                   color: c.onSurface,
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: context.scale(12)),
               if (count > 0) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+                  padding: context.scaleSymmetric(h: 10, v: 4),
                   decoration: BoxDecoration(
                     color: c.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(context.scale(8)),
                   ),
                   child: Text(
                     '$count total',
@@ -92,24 +90,27 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
                   ),
                 ),
                 if (addedCount > 0) ...[
-                  const SizedBox(width: 6),
+                  SizedBox(width: context.scale(6)),
                   _buildCountPill(
+                    context: context,
                     label: '$addedCount added',
                     color: Colors.green,
                     icon: Icons.add_circle_outline_rounded,
                   ),
                 ],
                 if (modifiedCount > 0) ...[
-                  const SizedBox(width: 6),
+                  SizedBox(width: context.scale(6)),
                   _buildCountPill(
+                    context: context,
                     label: '$modifiedCount modified',
                     color: Colors.blue,
                     icon: Icons.edit_note_rounded,
                   ),
                 ],
                 if (deletedCount > 0) ...[
-                  const SizedBox(width: 6),
+                  SizedBox(width: context.scale(6)),
                   _buildCountPill(
+                    context: context,
                     label: '$deletedCount deleted',
                     color: Colors.red,
                     icon: Icons.remove_circle_outline_rounded,
@@ -127,7 +128,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
             ],
           ),
           if (count > 0) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: context.scale(12)),
             TextField(
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
@@ -138,13 +139,10 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
                 ),
                 prefixIcon: Icon(
                   Icons.search_rounded,
-                  size: 20,
+                  size: context.scale(20),
                   color: c.onSurface.withValues(alpha: 0.3),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
+                contentPadding: context.scaleSymmetric(h: 16, v: 12),
                 isDense: true,
               ),
             ),
@@ -155,22 +153,23 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
   }
 
   Widget _buildCountPill({
+    required BuildContext context,
     required String label,
     required MaterialColor color,
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: context.scaleSymmetric(h: 8, v: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(context.scale(8)),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color.shade300),
-          const SizedBox(width: 4),
+          Icon(icon, size: context.scale(13), color: color.shade300),
+          SizedBox(width: context.scale(4)),
           Text(
             label,
             style: GoogleFonts.inter(
@@ -274,7 +273,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
       );
     }
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 4),
+      padding: context.scaleSymmetric(h: 28, v: 4),
       itemCount: files.length,
       itemBuilder: (ctx, i) => _FileTile(
         file: files[i], 
@@ -315,7 +314,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
     final isBuildEnabled = ref.watch(buildConfigProvider).enabled;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: context.scaleAll(20),
       decoration: BoxDecoration(
         color: c.surface,
         border: Border(
@@ -326,7 +325,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
         children: [
           OutlinedButton.icon(
             onPressed: () => ref.read(currentStepProvider.notifier).state = 1,
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
+            icon: Icon(Icons.arrow_back_rounded, size: context.scale(18)),
             label: const Text('Back'),
           ),
           const Spacer(),
@@ -338,7 +337,7 @@ class _StepChangedFilesState extends ConsumerState<StepChangedFiles> {
               isBuildEnabled
                   ? Icons.construction_rounded
                   : Icons.rocket_launch_rounded,
-              size: 18,
+              size: context.scale(18),
             ),
             label: Text(
               isBuildEnabled ? 'Configure Build' : 'Proceed to Export',
@@ -375,7 +374,7 @@ class _FileTile extends StatelessWidget {
     };
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(BuildContext context) {
     final (Color color, String text, IconData icon) = switch (file.changeType) {
       FileChangeType.added => (Colors.green, 'Added', Icons.add_rounded),
       FileChangeType.modified => (Colors.blue, 'Modified', Icons.edit_rounded),
@@ -383,17 +382,17 @@ class _FileTile extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: context.scaleSymmetric(h: 7, v: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(context.scale(6)),
         border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 3),
+          Icon(icon, size: context.scale(11), color: color),
+          SizedBox(width: context.scale(3)),
           Text(
             text,
             style: GoogleFonts.inter(
@@ -413,16 +412,16 @@ class _FileTile extends StatelessWidget {
     final isDeleted = file.isDeleted;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: EdgeInsets.only(bottom: context.scale(4)),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(context.scale(10)),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            padding: context.scaleSymmetric(h: 14, v: 11),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(context.scale(10)),
               color: isDeleted
                   ? Colors.red.withValues(alpha: 0.04)
                   : c.surfaceContainerHigh.withValues(alpha: 0.35),
@@ -435,7 +434,7 @@ class _FileTile extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 32,
+                  width: context.scale(32),
                   child: Text(
                     '${index + 1}',
                     style: GoogleFonts.jetBrainsMono(
@@ -447,15 +446,15 @@ class _FileTile extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: context.scale(8)),
                 Icon(
                   _icon(file.fileName),
-                  size: 18,
+                  size: context.scale(18),
                   color: isDeleted
                       ? Colors.red.shade400
                       : c.primary.withValues(alpha: 0.7),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: context.scale(12)),
                 Expanded(
                   child: RichText(
                     overflow: TextOverflow.ellipsis,
@@ -491,12 +490,12 @@ class _FileTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                _buildStatusBadge(),
-                const SizedBox(width: 10),
+                SizedBox(width: context.scale(8)),
+                _buildStatusBadge(context),
+                SizedBox(width: context.scale(10)),
                 Icon(
                   Icons.open_in_new_rounded,
-                  size: 16,
+                  size: context.scale(16),
                   color: c.onSurface.withValues(alpha: 0.3),
                 ),
               ],

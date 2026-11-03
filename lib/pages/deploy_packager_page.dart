@@ -7,6 +7,8 @@ import '../widgets/step_commit_list.dart';
 import '../widgets/step_changed_files.dart';
 import '../widgets/step_build_config.dart';
 import '../widgets/step_export.dart';
+import '../widgets/zoom_container.dart';
+import '../widgets/zoom_control_button.dart';
 
 class DeployPackagerPage extends ConsumerStatefulWidget {
   const DeployPackagerPage({super.key});
@@ -47,10 +49,11 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
     final stepIcons = _getStepIcons(isBuildEnabled);
 
     return Scaffold(
-      body: Column(
-        children: [
-          // ─── App Header ─────────────────────────────────────
-          _buildHeader(context, colors),
+      body: ZoomContainer(
+        child: Column(
+          children: [
+            // ─── App Header ─────────────────────────────────────
+            _buildHeader(context, colors),
 
           // ─── Step Indicator ─────────────────────────────────
           _buildStepIndicator(
@@ -86,32 +89,33 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildHeader(BuildContext context, ColorScheme colors) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(28, 20, 28, 8),
+      padding: context.scaleLTRB(28, 20, 28, 8),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: context.scale(42),
+            height: context.scale(42),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [colors.primary, colors.primary.withValues(alpha: 0.7)],
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(context.scale(12)),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.rocket_launch_rounded,
               color: Colors.white,
-              size: 22,
+              size: context.scale(22),
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: context.scale(14)),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -135,6 +139,8 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
             ],
           ),
           const Spacer(),
+          const ZoomControlButton(),
+          const SizedBox(width: 8),
           _buildResetButton(context, colors),
         ],
       ),
@@ -171,7 +177,7 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
     List<IconData> icons,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      padding: context.scaleSymmetric(h: 28, v: 8),
       child: Row(
         children: List.generate(labels.length * 2 - 1, (index) {
           if (index.isOdd) {
@@ -180,8 +186,8 @@ class _DeployPackagerPageState extends ConsumerState<DeployPackagerPage> {
             final isCompleted = stepIndex < currentStep;
             return Expanded(
               child: Container(
-                height: 2,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                height: (context.scale(2)).clamp(1.5, 3.0),
+                margin: EdgeInsets.symmetric(horizontal: context.scale(4)),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(1),
                   color: isCompleted
@@ -276,14 +282,17 @@ class _StepDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dotSize = context.scale(isActive ? 44 : 36);
+    final iconSize = context.scale(isActive ? 20 : 16);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
-          width: isActive ? 44 : 36,
-          height: isActive ? 44 : 36,
+          width: dotSize,
+          height: dotSize,
           decoration: BoxDecoration(
             gradient: (isActive || isCompleted)
                 ? LinearGradient(
@@ -303,7 +312,7 @@ class _StepDot extends StatelessWidget {
                 ? [
                     BoxShadow(
                       color: colors.primary.withValues(alpha: 0.3),
-                      blurRadius: 12,
+                      blurRadius: context.scale(12),
                       spreadRadius: 1,
                     ),
                   ]
@@ -311,13 +320,13 @@ class _StepDot extends StatelessWidget {
           ),
           child: Icon(
             isCompleted ? Icons.check_rounded : icon,
-            size: isActive ? 20 : 16,
+            size: iconSize,
             color: (isActive || isCompleted)
                 ? Colors.white
                 : colors.onSurface.withValues(alpha: 0.4),
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: context.scale(6)),
         Text(
           label,
           style: GoogleFonts.inter(

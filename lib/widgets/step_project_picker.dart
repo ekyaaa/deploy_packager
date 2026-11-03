@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_providers.dart';
+import 'zoom_container.dart';
 
 class StepProjectPicker extends ConsumerStatefulWidget {
   const StepProjectPicker({super.key});
@@ -65,13 +66,15 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
     final colors = Theme.of(context).colorScheme;
     final selectedPath = ref.watch(projectPathProvider);
 
-    return Center(
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        padding: context.scaleAll(28),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: context.scale(560)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             children: [
               // Icon
               AnimatedBuilder(
@@ -79,8 +82,8 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                 builder: (context, child) {
                   final value = _pulseController.value;
                   return Container(
-                    width: 80,
-                    height: 80,
+                    width: context.scale(80),
+                    height: context.scale(80),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -94,14 +97,14 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                     ),
                     child: Icon(
                       Icons.folder_open_rounded,
-                      size: 38,
+                      size: context.scale(38),
                       color: colors.primary.withValues(alpha: 0.8),
                     ),
                   );
                 },
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: context.scale(24)),
 
               Text(
                 'Select Your Project',
@@ -169,8 +172,9 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPickButton(BuildContext context, ColorScheme colors) {
     return SizedBox(
@@ -179,11 +183,11 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
         color: Colors.transparent,
         child: InkWell(
           onTap: _pickFolder,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(context.scale(16)),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 28),
+            padding: context.scaleSymmetric(v: 36, h: 28),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(context.scale(16)),
               border: Border.all(
                 color: colors.primary.withValues(alpha: 0.25),
                 width: 1.5,
@@ -193,8 +197,8 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
             child: Column(
               children: [
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: context.scale(52),
+                  height: context.scale(52),
                   decoration: BoxDecoration(
                     color: colors.primary.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
@@ -202,10 +206,10 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                   child: Icon(
                     Icons.create_new_folder_outlined,
                     color: colors.primary,
-                    size: 24,
+                    size: context.scale(24),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: context.scale(16)),
                 Text(
                   'Pick Project Folder',
                   style: GoogleFonts.inter(
@@ -214,7 +218,7 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                     color: colors.primary,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: context.scale(6)),
                 Text(
                   'Click to browse and select your project directory',
                   style: GoogleFonts.inter(
@@ -237,23 +241,23 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
   ) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: context.scaleAll(20),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: context.scale(44),
+              height: context.scale(44),
               decoration: BoxDecoration(
                 color: Colors.green.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(context.scale(12)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check_circle_outline_rounded,
                 color: Colors.green,
-                size: 24,
+                size: context.scale(24),
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: context.scale(16)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +270,7 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                       color: Colors.green,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.scale(4)),
                   Text(
                     path,
                     style: GoogleFonts.inter(
@@ -279,12 +283,12 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: context.scale(12)),
             IconButton(
               onPressed: _pickFolder,
               icon: Icon(
                 Icons.edit_outlined,
-                size: 20,
+                size: context.scale(20),
                 color: colors.onSurface.withValues(alpha: 0.5),
               ),
               tooltip: 'Change folder',
@@ -301,27 +305,27 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: context.scaleSymmetric(h: 20, v: 14),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: context.scale(44),
+              height: context.scale(44),
               decoration: BoxDecoration(
                 color: isEnabled
                     ? colors.primary.withValues(alpha: 0.15)
                     : colors.onSurface.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(context.scale(12)),
               ),
               child: Icon(
                 Icons.construction_rounded,
                 color: isEnabled
                     ? colors.primary
                     : colors.onSurface.withValues(alpha: 0.4),
-                size: 22,
+                size: context.scale(22),
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: context.scale(16)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -336,9 +340,9 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
                           color: colors.onSurface,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: context.scale(8)),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: context.scaleSymmetric(h: 6, v: 2),
                         decoration: BoxDecoration(
                           color: isEnabled
                               ? Colors.green.withValues(alpha: 0.12)

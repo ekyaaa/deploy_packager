@@ -1,15 +1,56 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_providers.dart';
 import '../models/git_commit.dart';
+import 'zoom_container.dart';
 
-class StepCommitList extends ConsumerWidget {
+class StepCommitList extends ConsumerStatefulWidget {
   const StepCommitList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StepCommitList> createState() => _StepCommitListState();
+}
+
+class _StepCommitListState extends ConsumerState<StepCommitList> {
+  int? _lastClickedIndex;
+  bool _lastActionWasSelect = true;
+
+  void _toggleCommit(int index, List<GitCommit> commits) {
+    final commit = commits[index];
+    final current = Set<String>.from(ref.read(selectedCommitHashesProvider));
+    final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+    if (isShiftPressed && _lastClickedIndex != null && _lastClickedIndex! < commits.length) {
+      final start = min(_lastClickedIndex!, index);
+      final end = max(_lastClickedIndex!, index);
+      for (int i = start; i <= end; i++) {
+        if (_lastActionWasSelect) {
+          current.add(commits[i].hash);
+        } else {
+          current.remove(commits[i].hash);
+        }
+      }
+    } else {
+      if (current.contains(commit.hash)) {
+        current.remove(commit.hash);
+        _lastActionWasSelect = false;
+      } else {
+        current.add(commit.hash);
+        _lastActionWasSelect = true;
+      }
+      _lastClickedIndex = index;
+    }
+
+    ref.read(selectedCommitHashesProvider.notifier).state = current;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final commitsAsync = ref.watch(commitsProvider);
     final selectedHashes = ref.watch(selectedCommitHashesProvider);
@@ -17,7 +58,7 @@ class StepCommitList extends ConsumerWidget {
     return Column(
       children: [
         // Header bar
-        _buildHeaderBar(context, ref, colors, selectedHashes, commitsAsync),
+        _buildHeaderBar(context, colors, selectedHashes, commitsAsync),
 
         // Commit list
         Expanded(
@@ -30,7 +71,6 @@ class StepCommitList extends ConsumerWidget {
               }
               return _buildCommitList(
                 context,
-                ref,
                 colors,
                 commits,
                 selectedHashes,
@@ -40,14 +80,62 @@ class StepCommitList extends ConsumerWidget {
         ),
 
         // Bottom bar with navigation
-        _buildBottomBar(context, ref, colors, selectedHashes),
+        _buildBottomBar(context, colors, selectedHashes),
       ],
+    );
+  }
+
+  Widget _buildRangeSelectPill(BuildContext context, ColorScheme colors) {
+    return Tooltip(
+      message: 'Click to check/uncheck a commit, then hold Shift and click another commit to select or deselect all commits in between',
+      waitDuration: const Duration(milliseconds: 300),
+      child: Container(
+        padding: context.scaleSymmetric(h: 10, v: 5),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(context.scale(8)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Text(
+                'Shift',
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+            SizedBox(width: context.scale(6)),
+            Text(
+              '+ Click to select/deselect range',
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: colors.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildHeaderBar(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme colors,
     Set<String> selectedHashes,
     AsyncValue<List<GitCommit>> commitsAsync,
@@ -55,11 +143,11 @@ class StepCommitList extends ConsumerWidget {
     final commits = commitsAsync.valueOrNull ?? [];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+      padding: context.scaleSymmetric(h: 28, v: 12),
       child: Row(
         children: [
-          Icon(Icons.history_rounded, size: 20, color: colors.primary),
-          const SizedBox(width: 10),
+          Icon(Icons.history_rounded, size: context.scale(20), color: colors.primary),
+          SizedBox(width: context.scale(10)),
           Text(
             'Select Commits',
             style: GoogleFonts.inter(
@@ -68,13 +156,13 @@ class StepCommitList extends ConsumerWidget {
               color: colors.onSurface,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: context.scale(12)),
           if (selectedHashes.isNotEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: context.scaleSymmetric(h: 10, v: 4),
               decoration: BoxDecoration(
                 color: colors.primary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(context.scale(8)),
               ),
               child: Text(
                 '${selectedHashes.length} selected',
@@ -87,8 +175,14 @@ class StepCommitList extends ConsumerWidget {
             ),
           const Spacer(),
           if (commits.isNotEmpty) ...[
+            _buildRangeSelectPill(context, colors),
+            SizedBox(width: context.scale(10)),
             TextButton.icon(
               onPressed: () {
+                setState(() {
+                  _lastClickedIndex = null;
+                  _lastActionWasSelect = true;
+                });
                 if (selectedHashes.length == commits.length) {
                   ref.read(selectedCommitHashesProvider.notifier).state = {};
                 } else {
@@ -100,7 +194,7 @@ class StepCommitList extends ConsumerWidget {
                 selectedHashes.length == commits.length
                     ? Icons.deselect_rounded
                     : Icons.select_all_rounded,
-                size: 18,
+                size: context.scale(18),
               ),
               label: Text(
                 selectedHashes.length == commits.length
@@ -108,10 +202,7 @@ class StepCommitList extends ConsumerWidget {
                     : 'Select All',
               ),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
+                padding: context.scaleSymmetric(h: 14, v: 10),
               ),
             ),
           ],
@@ -216,13 +307,12 @@ class StepCommitList extends ConsumerWidget {
 
   Widget _buildCommitList(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme colors,
     List<GitCommit> commits,
     Set<String> selectedHashes,
   ) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: context.scaleSymmetric(h: 28),
       itemCount: commits.length,
       itemBuilder: (context, index) {
         final commit = commits[index];
@@ -230,17 +320,7 @@ class StepCommitList extends ConsumerWidget {
         return _CommitTile(
           commit: commit,
           isSelected: isSelected,
-          onToggle: () {
-            final current = Set<String>.from(
-              ref.read(selectedCommitHashesProvider),
-            );
-            if (current.contains(commit.hash)) {
-              current.remove(commit.hash);
-            } else {
-              current.add(commit.hash);
-            }
-            ref.read(selectedCommitHashesProvider.notifier).state = current;
-          },
+          onToggle: () => _toggleCommit(index, commits),
         );
       },
     );
@@ -248,12 +328,11 @@ class StepCommitList extends ConsumerWidget {
 
   Widget _buildBottomBar(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme colors,
     Set<String> selectedHashes,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: context.scaleAll(20),
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border(
@@ -266,7 +345,7 @@ class StepCommitList extends ConsumerWidget {
             onPressed: () {
               ref.read(currentStepProvider.notifier).state = 0;
             },
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
+            icon: Icon(Icons.arrow_back_rounded, size: context.scale(18)),
             label: const Text('Back'),
           ),
           const Spacer(),
@@ -276,7 +355,7 @@ class StepCommitList extends ConsumerWidget {
                 : () {
                     ref.read(currentStepProvider.notifier).state = 2;
                   },
-            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            icon: Icon(Icons.arrow_forward_rounded, size: context.scale(18)),
             label: const Text('View Changed Files'),
           ),
         ],
@@ -302,18 +381,18 @@ class _CommitTile extends StatelessWidget {
     final dateFormatter = DateFormat('dd MMM yyyy, HH:mm');
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.only(bottom: context.scale(6)),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onToggle,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(context.scale(12)),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: context.scaleSymmetric(h: 16, v: 13),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(context.scale(12)),
               color: isSelected
                   ? colors.primary.withValues(alpha: 0.08)
                   : colors.surfaceContainerHigh.withValues(alpha: 0.4),
@@ -329,10 +408,10 @@ class _CommitTile extends StatelessWidget {
                 // Checkbox
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  width: 22,
-                  height: 22,
+                  width: context.scale(22),
+                  height: context.scale(22),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(context.scale(6)),
                     color: isSelected ? colors.primary : Colors.transparent,
                     border: Border.all(
                       color: isSelected
@@ -342,25 +421,22 @@ class _CommitTile extends StatelessWidget {
                     ),
                   ),
                   child: isSelected
-                      ? const Icon(
+                      ? Icon(
                           Icons.check_rounded,
-                          size: 15,
+                          size: context.scale(15),
                           color: Colors.white,
                         )
                       : null,
                 ),
 
-                const SizedBox(width: 14),
+                SizedBox(width: context.scale(14)),
 
                 // Hash badge
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding: context.scaleSymmetric(h: 8, v: 3),
                   decoration: BoxDecoration(
                     color: colors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(context.scale(6)),
                   ),
                   child: Text(
                     commit.shortHash,
@@ -372,7 +448,7 @@ class _CommitTile extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(width: 14),
+                SizedBox(width: context.scale(14)),
 
                 // Commit message
                 Expanded(

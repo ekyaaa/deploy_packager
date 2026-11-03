@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/build_config.dart';
 import '../providers/app_providers.dart';
+import 'zoom_container.dart';
 
 class StepBuildConfig extends ConsumerStatefulWidget {
   const StepBuildConfig({super.key});
@@ -52,16 +53,16 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
         _buildHeader(colors, config),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+            padding: context.scaleSymmetric(h: 28, v: 8),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
+              constraints: BoxConstraints(maxWidth: context.scale(560)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildFrontendSection(colors, config),
-                  const SizedBox(height: 16),
+                  SizedBox(height: context.scale(16)),
                   _buildDjangoSection(colors, config),
-                  const SizedBox(height: 16),
+                  SizedBox(height: context.scale(16)),
                   _buildInfoCard(colors),
                 ],
               ),
@@ -75,11 +76,11 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
 
   Widget _buildHeader(ColorScheme colors, BuildConfig config) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(28, 12, 28, 8),
+      padding: context.scaleLTRB(28, 12, 28, 8),
       child: Row(
         children: [
-          Icon(Icons.construction_rounded, size: 20, color: colors.primary),
-          const SizedBox(width: 10),
+          Icon(Icons.construction_rounded, size: context.scale(20), color: colors.primary),
+          SizedBox(width: context.scale(10)),
           Text(
             'Build Configuration',
             style: GoogleFonts.inter(
@@ -88,12 +89,12 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
               color: colors.onSurface,
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: context.scale(12)),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: context.scaleSymmetric(h: 10, v: 4),
             decoration: BoxDecoration(
               color: colors.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(context.scale(8)),
             ),
             child: Text(
               'enabled',
@@ -288,7 +289,7 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
 
   Widget _buildBottom(ColorScheme colors, BuildConfig config) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: context.scaleAll(20),
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border(
@@ -299,13 +300,13 @@ class _StepBuildConfigState extends ConsumerState<StepBuildConfig> {
         children: [
           OutlinedButton.icon(
             onPressed: () => ref.read(currentStepProvider.notifier).state = 2,
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
+            icon: Icon(Icons.arrow_back_rounded, size: context.scale(18)),
             label: const Text('Back'),
           ),
           const Spacer(),
           FilledButton.icon(
             onPressed: () => ref.read(currentStepProvider.notifier).state = 4,
-            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+            icon: Icon(Icons.arrow_forward_rounded, size: context.scale(18)),
             label: const Text('Proceed to Export'),
           ),
         ],
@@ -364,14 +365,14 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: context.scaleAll(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 18, color: colors.primary),
-                const SizedBox(width: 8),
+                Icon(icon, size: context.scale(18), color: colors.primary),
+                SizedBox(width: context.scale(8)),
                 Text(
                   title,
                   style: GoogleFonts.inter(
@@ -382,7 +383,7 @@ class _SectionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: context.scale(4)),
             Text(
               subtitle,
               style: GoogleFonts.inter(
@@ -390,7 +391,7 @@ class _SectionCard extends StatelessWidget {
                 color: colors.onSurface.withValues(alpha: 0.4),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: context.scale(16)),
             child,
           ],
         ),

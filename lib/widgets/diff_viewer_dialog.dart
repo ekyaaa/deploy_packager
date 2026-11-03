@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/diff_result.dart';
 import '../providers/app_providers.dart';
+import 'zoom_container.dart';
 
 class DiffViewerDialog extends ConsumerStatefulWidget {
   final String projectPath;
@@ -45,13 +46,21 @@ class _DiffViewerDialogState extends ConsumerState<DiffViewerDialog> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final scale = ref.watch(zoomProvider).currentScale;
+    final screenSize = MediaQuery.of(context).size;
     
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 800,
-        height: 600,
-        padding: const EdgeInsets.all(24),
+    return AppScaleScope(
+      scale: scale,
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(scale),
+        ),
+        child: Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16 * scale)),
+          child: Container(
+            width: (800 * scale).clamp(320.0, screenSize.width * 0.92),
+            height: (600 * scale).clamp(300.0, screenSize.height * 0.90),
+            padding: EdgeInsets.all(24 * scale),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -111,6 +120,8 @@ class _DiffViewerDialogState extends ConsumerState<DiffViewerDialog> {
           ],
         ),
       ),
+    ),
+    ),
     );
   }
 

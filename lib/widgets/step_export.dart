@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/changed_file.dart';
 import '../providers/app_providers.dart';
 import '../services/export_service.dart';
+import 'zoom_container.dart';
 
 class StepExport extends ConsumerWidget {
   const StepExport({super.key});
@@ -21,15 +22,15 @@ class StepExport extends ConsumerWidget {
       children: [
         // Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(28, 12, 28, 8),
+          padding: context.scaleLTRB(28, 12, 28, 8),
           child: Row(
             children: [
               Icon(
                 Icons.rocket_launch_rounded,
-                size: 20,
+                size: context.scale(20),
                 color: colors.primary,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: context.scale(10)),
               Text(
                 'Export Files',
                 style: GoogleFonts.inter(
@@ -44,7 +45,7 @@ class StepExport extends ConsumerWidget {
 
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+            padding: context.scaleSymmetric(h: 28, v: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -55,7 +56,7 @@ class StepExport extends ConsumerWidget {
                   destinationPath: exportState.destinationPath,
                   colors: colors,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: context.scale(16)),
 
                 // Destination picker
                 if (exportState.status != ExportStatus.success)
@@ -123,11 +124,11 @@ class StepExport extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _pickDest(ref),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(ctx.scale(14)),
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: ctx.scaleAll(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(ctx.scale(14)),
             border: Border.all(
               color: c.primary.withValues(
                 alpha: state.destinationPath != null ? 0.3 : 0.15,
@@ -138,19 +139,19 @@ class StepExport extends ConsumerWidget {
           child: Row(
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: ctx.scale(44),
+                height: ctx.scale(44),
                 decoration: BoxDecoration(
                   color: c.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(ctx.scale(12)),
                 ),
                 child: Icon(
                   Icons.folder_open_rounded,
                   color: c.primary,
-                  size: 22,
+                  size: ctx.scale(22),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: ctx.scale(16)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +169,7 @@ class StepExport extends ConsumerWidget {
                       ),
                     ),
                     if (state.destinationPath != null) ...[
-                      const SizedBox(height: 4),
+                      SizedBox(height: ctx.scale(4)),
                       Text(
                         state.destinationPath!,
                         style: GoogleFonts.inter(
@@ -179,7 +180,7 @@ class StepExport extends ConsumerWidget {
                         maxLines: 2,
                       ),
                     ] else ...[
-                      const SizedBox(height: 4),
+                      SizedBox(height: ctx.scale(4)),
                       Text(
                         'Choose where to export the changed files',
                         style: GoogleFonts.inter(
@@ -256,9 +257,9 @@ class StepExport extends ConsumerWidget {
     WidgetRef ref,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: ctx.scaleSymmetric(h: 16, v: 10),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(ctx.scale(12)),
         color: state.cleanDestination
             ? Colors.orange.withValues(alpha: 0.08)
             : Colors.transparent,
@@ -272,12 +273,12 @@ class StepExport extends ConsumerWidget {
         children: [
           Icon(
             Icons.cleaning_services_rounded,
-            size: 18,
+            size: ctx.scale(18),
             color: state.cleanDestination
                 ? Colors.orange
                 : c.onSurface.withValues(alpha: 0.35),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: ctx.scale(12)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,7 +357,7 @@ class StepExport extends ConsumerWidget {
         hasFiles &&
         state.status != ExportStatus.exporting;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: ctx.scaleAll(20),
       decoration: BoxDecoration(
         color: c.surface,
         border: Border(
@@ -370,17 +371,17 @@ class StepExport extends ConsumerWidget {
                 ? null
                 : () => ref.read(currentStepProvider.notifier).state =
                     isBuildEnabled ? 3 : 2,
-            icon: const Icon(Icons.arrow_back_rounded, size: 18),
+            icon: Icon(Icons.arrow_back_rounded, size: ctx.scale(18)),
             label: const Text('Back'),
           ),
           const Spacer(),
           if (state.status == ExportStatus.success) ...[
             OutlinedButton.icon(
               onPressed: () => _openFolder(state.destinationPath!),
-              icon: const Icon(Icons.folder_open_rounded, size: 18),
+              icon: Icon(Icons.folder_open_rounded, size: ctx.scale(18)),
               label: const Text('Open Folder'),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: ctx.scale(12)),
             FilledButton.icon(
               onPressed: () {
                 ref.read(currentStepProvider.notifier).state = 0;
@@ -388,7 +389,7 @@ class StepExport extends ConsumerWidget {
                 ref.read(selectedCommitHashesProvider.notifier).state = {};
                 ref.read(exportProvider.notifier).reset();
               },
-              icon: const Icon(Icons.refresh_rounded, size: 18),
+              icon: Icon(Icons.refresh_rounded, size: ctx.scale(18)),
               label: const Text('Start Over'),
             ),
           ] else
@@ -397,15 +398,15 @@ class StepExport extends ConsumerWidget {
                   ? () => ref.read(exportProvider.notifier).startExport()
                   : null,
               icon: state.status == ExportStatus.exporting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
+                  ? SizedBox(
+                      width: ctx.scale(18),
+                      height: ctx.scale(18),
+                      child: const CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.file_copy_rounded, size: 18),
+                  : Icon(Icons.file_copy_rounded, size: ctx.scale(18)),
               label: Text(
                 state.status == ExportStatus.exporting
                     ? 'Exporting...'
@@ -421,10 +422,11 @@ class StepExport extends ConsumerWidget {
     // Start at the project-specific destination or last used export path
     final projectPath = ref.read(projectPathProvider);
     final currentDest = ref.read(exportProvider).destinationPath;
-    final savedExport = projectPath != null
+    final projectSavedExport = projectPath != null
         ? ref.read(settingsServiceProvider).getExportPathForProject(projectPath)
-        : ref.read(settingsServiceProvider).exportPath;
-    final initialDir = currentDest ?? savedExport;
+        : null;
+    final globalExport = ref.read(settingsServiceProvider).exportPath;
+    final initialDir = currentDest ?? projectSavedExport ?? globalExport;
 
     String? validInitialDir;
     if (initialDir != null && Directory(initialDir).existsSync()) {
@@ -471,7 +473,7 @@ class _SummaryCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: context.scaleAll(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -483,17 +485,19 @@ class _SummaryCard extends StatelessWidget {
                 color: colors.onSurface,
               ),
             ),
-            const SizedBox(height: 16),
-            _row(Icons.source_rounded, 'Source', projectPath),
-            const SizedBox(height: 10),
+            SizedBox(height: context.scale(16)),
+            _row(context, Icons.source_rounded, 'Source', projectPath),
+            SizedBox(height: context.scale(10)),
             _row(
+              context,
               Icons.file_copy_outlined,
               'Files to copy',
               '$copyCount file(s)',
             ),
             if (deletedCount > 0) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: context.scale(10)),
               _row(
+                context,
                 Icons.delete_outline_rounded,
                 'Deleted files',
                 '$deletedCount file(s) (delete_files.sh will be created)',
@@ -501,8 +505,8 @@ class _SummaryCard extends StatelessWidget {
               ),
             ],
             if (destinationPath != null) ...[
-              const SizedBox(height: 10),
-              _row(Icons.save_alt_rounded, 'Destination', destinationPath!),
+              SizedBox(height: context.scale(10)),
+              _row(context, Icons.save_alt_rounded, 'Destination', destinationPath!),
             ],
           ],
         ),
@@ -510,13 +514,13 @@ class _SummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _row(IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _row(BuildContext context, IconData icon, String label, String value, {Color? valueColor}) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: colors.primary.withValues(alpha: 0.7)),
-        const SizedBox(width: 12),
+        Icon(icon, size: context.scale(18), color: colors.primary.withValues(alpha: 0.7)),
+        SizedBox(width: context.scale(12)),
         SizedBox(
-          width: 100,
+          width: context.scale(100),
           child: Text(
             label,
             style: GoogleFonts.inter(
@@ -588,9 +592,9 @@ class _SuccessCardState extends State<_SuccessCard>
       child: ScaleTransition(
         scale: _scale,
         child: Container(
-          padding: const EdgeInsets.all(28),
+          padding: context.scaleAll(28),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(context.scale(16)),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -604,19 +608,19 @@ class _SuccessCardState extends State<_SuccessCard>
           child: Column(
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: context.scale(64),
+                height: context.scale(64),
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle_rounded,
-                  size: 36,
+                  size: context.scale(36),
                   color: Colors.green,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: context.scale(16)),
               Text(
                 'Export Complete!',
                 style: GoogleFonts.inter(

@@ -118,6 +118,7 @@ class ExportState {
   ExportState copyWith({
     ExportStatus? status,
     String? destinationPath,
+    bool clearDestinationPath = false,
     double? progress,
     ExportResult? result,
     String? errorMessage,
@@ -126,7 +127,9 @@ class ExportState {
   }) {
     return ExportState(
       status: status ?? this.status,
-      destinationPath: destinationPath ?? this.destinationPath,
+      destinationPath: clearDestinationPath
+          ? null
+          : (destinationPath ?? this.destinationPath),
       progress: progress ?? this.progress,
       result: result ?? this.result,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -144,7 +147,7 @@ class ExportNotifier extends StateNotifier<ExportState> {
     final projectPath = ref.read(projectPathProvider);
     final savedPath = projectPath != null
         ? settings.getExportPathForProject(projectPath)
-        : settings.exportPath;
+        : null;
     if (savedPath != null) {
       state = state.copyWith(destinationPath: savedPath);
     }
@@ -158,6 +161,7 @@ class ExportNotifier extends StateNotifier<ExportState> {
     final savedPath = settings.getExportPathForProject(projectPath);
     state = state.copyWith(
       destinationPath: savedPath,
+      clearDestinationPath: savedPath == null,
       status: ExportStatus.idle,
     );
   }
@@ -366,3 +370,98 @@ final exportProvider = StateNotifierProvider<ExportNotifier, ExportState>((
 // ─── Stepper ────────────────────────────────────────────────
 
 final currentStepProvider = StateProvider<int>((ref) => 0);
+
+// ─── Zoom & Responsiveness ──────────────────────────────────
+
+class ZoomState {
+  final bool isAuto;
+  final double manualScale;
+  final double currentScale;
+
+  const ZoomState({
+    this.isAuto = true,
+    this.manualScale = 1.0,
+    this.currentScale = 1.0,
+  });
+
+  ZoomState copyWith({
+    bool? isAuto,
+    double? manualScale,
+    double? currentScale,
+  }) {
+    return ZoomState(
+      isAuto: isAuto ?? this.isAuto,
+      manualScale: manualScale ?? this.manualScale,
+      currentScale: currentScale ?? this.currentScale,
+    );
+  }
+}
+
+class ZoomNotifier extends StateNotifier<ZoomState> {
+  final Ref ref;
+
+  static const double minScale = 0.70;
+  static const double maxScale = 1.30;
+  static const double step = 0.05;
+
+  ZoomNotifier(this.ref) : super(const ZoomState()) {
+    _loadSettings();
+  }
+
+  void _loadSettings() {
+    final settings = ref.read(settingsServiceProvider);
+    final isAuto = settings.zoomIsAuto;
+    final scale = settings.zoomScale.clamp(minScale, maxScale);
+    state = state.copyWith(
+      isAuto: isAuto,
+      manualScale: scale,
+      currentScale: isAuto ? state.currentScale : scale,
+    );
+  }
+
+  void setAuto() {
+    state = state.copyWith(isAuto: true);
+    _persist();
+  }
+
+  void setScale(double scale) {
+    final clamped = scale.clamp(minScale, maxScale);
+    state = state.copyWith(
+      isAuto: false,
+      manualScale: clamped,
+      currentScale: clamped,
+    );
+    _persist();
+  }
+
+  void zoomIn() {
+    final next = (state.currentScale + step).clamp(minScale, maxScale);
+    setScale((next * 100).round() / 100);
+  }
+
+  void zoomOut() {
+    final next = (state.currentScale - step).clamp(minScale, maxScale);
+    setScale((next * 100).round() / 100);
+  }
+
+  void reset() {
+    setAuto();
+  }
+
+  void updateEffectiveScale(double scale) {
+    if (state.isAuto && (state.currentScale - scale).abs() > 0.001) {
+      state = state.copyWith(currentScale: scale);
+    }
+  }
+
+  void _persist() {
+    ref.read(settingsServiceProvider).setZoomSettings(
+      isAuto: state.isAuto,
+      scale: state.manualScale,
+    );
+  }
+}
+
+final zoomProvider = StateNotifierProvider<ZoomNotifier, ZoomState>((ref) {
+  return ZoomNotifier(ref);
+});
