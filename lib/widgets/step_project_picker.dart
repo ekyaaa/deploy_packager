@@ -66,13 +66,15 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
     final colors = Theme.of(context).colorScheme;
     final selectedPath = ref.watch(projectPathProvider);
 
-    return Center(
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
       child: SingleChildScrollView(
         padding: context.scaleAll(28),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: context.scale(560)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: context.scale(560)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
             children: [
               // Icon
               AnimatedBuilder(
@@ -170,8 +172,9 @@ class _StepProjectPickerState extends ConsumerState<StepProjectPicker>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPickButton(BuildContext context, ColorScheme colors) {
     return SizedBox(
