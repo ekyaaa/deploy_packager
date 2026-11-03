@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -6,11 +9,48 @@ import '../providers/app_providers.dart';
 import '../models/git_commit.dart';
 import 'zoom_container.dart';
 
-class StepCommitList extends ConsumerWidget {
+class StepCommitList extends ConsumerStatefulWidget {
   const StepCommitList({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StepCommitList> createState() => _StepCommitListState();
+}
+
+class _StepCommitListState extends ConsumerState<StepCommitList> {
+  int? _lastClickedIndex;
+  bool _lastActionWasSelect = true;
+
+  void _toggleCommit(int index, List<GitCommit> commits) {
+    final commit = commits[index];
+    final current = Set<String>.from(ref.read(selectedCommitHashesProvider));
+    final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+    if (isShiftPressed && _lastClickedIndex != null && _lastClickedIndex! < commits.length) {
+      final start = min(_lastClickedIndex!, index);
+      final end = max(_lastClickedIndex!, index);
+      for (int i = start; i <= end; i++) {
+        if (_lastActionWasSelect) {
+          current.add(commits[i].hash);
+        } else {
+          current.remove(commits[i].hash);
+        }
+      }
+    } else {
+      if (current.contains(commit.hash)) {
+        current.remove(commit.hash);
+        _lastActionWasSelect = false;
+      } else {
+        current.add(commit.hash);
+        _lastActionWasSelect = true;
+      }
+      _lastClickedIndex = index;
+    }
+
+    ref.read(selectedCommitHashesProvider.notifier).state = current;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final commitsAsync = ref.watch(commitsProvider);
     final selectedHashes = ref.watch(selectedCommitHashesProvider);
@@ -18,7 +58,7 @@ class StepCommitList extends ConsumerWidget {
     return Column(
       children: [
         // Header bar
-        _buildHeaderBar(context, ref, colors, selectedHashes, commitsAsync),
+        _buildHeaderBar(context, colors, selectedHashes, commitsAsync),
 
         // Commit list
         Expanded(
@@ -31,7 +71,6 @@ class StepCommitList extends ConsumerWidget {
               }
               return _buildCommitList(
                 context,
-                ref,
                 colors,
                 commits,
                 selectedHashes,
@@ -41,14 +80,62 @@ class StepCommitList extends ConsumerWidget {
         ),
 
         // Bottom bar with navigation
-        _buildBottomBar(context, ref, colors, selectedHashes),
+        _buildBottomBar(context, colors, selectedHashes),
       ],
+    );
+  }
+
+  Widget _buildRangeSelectPill(BuildContext context, ColorScheme colors) {
+    return Tooltip(
+      message: 'Click to check/uncheck a commit, then hold Shift and click another commit to select or deselect all commits in between',
+      waitDuration: const Duration(milliseconds: 300),
+      child: Container(
+        padding: context.scaleSymmetric(h: 10, v: 5),
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHigh.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(context.scale(8)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.06),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: colors.onSurface.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Text(
+                'Shift',
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w600,
+                  color: colors.onSurface.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+            SizedBox(width: context.scale(6)),
+            Text(
+              '+ Click to select/deselect range',
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w500,
+                color: colors.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildHeaderBar(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme colors,
     Set<String> selectedHashes,
     AsyncValue<List<GitCommit>> commitsAsync,
@@ -88,8 +175,14 @@ class StepCommitList extends ConsumerWidget {
             ),
           const Spacer(),
           if (commits.isNotEmpty) ...[
+            _buildRangeSelectPill(context, colors),
+            SizedBox(width: context.scale(10)),
             TextButton.icon(
               onPressed: () {
+                setState(() {
+                  _lastClickedIndex = null;
+                  _lastActionWasSelect = true;
+                });
                 if (selectedHashes.length == commits.length) {
                   ref.read(selectedCommitHashesProvider.notifier).state = {};
                 } else {
@@ -214,7 +307,6 @@ class StepCommitList extends ConsumerWidget {
 
   Widget _buildCommitList(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme colors,
     List<GitCommit> commits,
     Set<String> selectedHashes,
@@ -228,17 +320,7 @@ class StepCommitList extends ConsumerWidget {
         return _CommitTile(
           commit: commit,
           isSelected: isSelected,
-          onToggle: () {
-            final current = Set<String>.from(
-              ref.read(selectedCommitHashesProvider),
-            );
-            if (current.contains(commit.hash)) {
-              current.remove(commit.hash);
-            } else {
-              current.add(commit.hash);
-            }
-            ref.read(selectedCommitHashesProvider.notifier).state = current;
-          },
+          onToggle: () => _toggleCommit(index, commits),
         );
       },
     );
@@ -246,7 +328,6 @@ class StepCommitList extends ConsumerWidget {
 
   Widget _buildBottomBar(
     BuildContext context,
-    WidgetRef ref,
     ColorScheme colors,
     Set<String> selectedHashes,
   ) {
